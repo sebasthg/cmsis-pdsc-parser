@@ -1,38 +1,42 @@
 //! Contains types representing debug sequences
 
 use std::{collections::HashMap, fmt::Debug};
-use serde::{Deserialize, Serialize, de::value};
+use roxmltree::{Document, Node};
+use serde::{Deserialize, de::value};
 use log::{debug, error, trace, warn};
+use serde_roxmltree::RawNode;
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Deserialize)]
 /// Represents [PDSC Package](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_package_pg.html)
 /// which is the root element of the PDSC file
-pub struct Package {
-    pub devices: Devices
+pub struct Package<'a> {
+    #[serde(borrow)]
+    pub devices: Devices<'a>
 }
 
-impl Package {
-    pub fn new(pdsc_content: &str) -> Self {
+impl<'a> Package<'a> {
+    pub fn new(document: &'a Document) -> Self {
         // Parse the content
-        let mut pdsc: Self = serde_roxmltree::from_str(&pdsc_content).unwrap();
+        let mut package: Package = serde_roxmltree::from_doc(&document).unwrap();
 
         // Parse the "wild" string conents into structured data
-        pdsc.devices.family.debugvars.parse_debugvars();
+        package.devices.family.debugvars.parse_debugvars();
 
         // Return the data
-        pdsc
+        package
     }
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Deserialize)]
 /// Represents [PDSC Devices](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_devices_pg.html)
-pub struct Devices {
-    pub family: Family
+pub struct Devices<'a> {
+    #[serde(borrow)]
+    pub family: Family<'a>
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Deserialize)]
 /// Represents [PDSC Family](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html)
-pub struct Family {
+pub struct Family<'a> {
     #[serde(rename = "Dfamily")]
     /// The device family name
     pub device_family: String,
@@ -45,10 +49,11 @@ pub struct Family {
     pub debugvars: Debugvars,
 
     /// Debug sequences
-    pub sequences: Sequences
+    #[serde(borrow)]
+    pub sequences: Sequences<'a>
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Deserialize)]
 /// Represents the `traceSetput` attribute in [PDSC sequences](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_sequences)
 enum TraceSetup {
     #[serde(rename = "full")]
@@ -57,19 +62,7 @@ enum TraceSetup {
     Legacy
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
-/// Represents [PDSC sequences](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_sequences)
-pub struct Sequences {
-    /// Trace setup configuration
-    #[serde(rename = "traceSetup")]
-    trace_setup: Option<TraceSetup>,
-
-    /// Debug sequences
-    #[serde(rename = "sequence")]
-    pub sequences: Vec<Sequence>
-}
-
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Deserialize)]
 /// Represents [PDSC Debugvars](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_debugvars)
 pub struct Debugvars {
     /// The relative path to the configuration file containing debugvars
@@ -176,8 +169,46 @@ impl Debugvars {
     }
 }
 
+#[derive(Debug, PartialEq, Deserialize)]
+/// Represents [PDSC sequences](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_sequences)
+pub struct Sequences<'a> {
+    /// Trace setup configuration
+    #[serde(rename = "traceSetup")]
+    trace_setup: Option<TraceSetup>,
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+    /// Raw XML nodes representing debug sequences
+    ///
+    /// These are stored as [RawNode] due to [serde_roxmltree] not supporting decoding elements as
+    /// a vector of enums and we neet do be able to preresent both [control](SequenceElement::Control)
+    /// and [block](SequenceElement::Block) elements with their order perserved.
+    #[serde(rename = "sequence")]
+    #[serde(borrow)]
+    raw_nodes: Vec<RawNode<'a>>,
+
+    /// Debug Sequences
+    #[serde(skip)]
+    sequences: Vec<Sequence>
+}
+
+/*
+impl<'a> Sequences<'a> {
+
+    ///
+    pub fn parse_raw_nodes_content(&self) -> Vec<Sequence> {
+        todo!()
+    }
+
+    /// Parses the raw XML Sequence nodes and stores the parsed sequences in [Self::sequences]
+    pub fn parse_sequences(&'a mut self) {
+        let sequences = Self::parse_raw_nodes_content(&self);
+
+        self.sequences = sequences;
+    }
+}
+*/
+
+
+#[derive(Debug, PartialEq, Deserialize)]
 /// Represents [PDSC Sequence](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_sequence)
 pub struct Sequence {
     /// The sequence name
@@ -193,33 +224,131 @@ pub struct Sequence {
     info: Option<String>,
 
     /// Child elements in the sequence
-    #[serde(rename = "#content")]
+    //#[serde(rename = "#content")]
+    //#[serde(borrow)]
+    //content: RawNode<'a>,
+
+    #[serde(skip)]
     elements: Vec<SequenceElement>
 }
 
-//#[derive(Debug, PartialEq, Deserialize, Serialize)]
-// /// Represents the valid sequence child elements as defined in the "Child Elements" section of the [PDSC sequence element](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_sequence)
-/*
-pub struct SequenceElements {
-    #[serde(rename = "control")]
-    control: Option<Vec<SequenceControl>>,
-    #[serde(rename = "block")]
-    block: Option<Vec<SequenceBlock>>,
-    //#[serde(rename = "#missing")]
-    //missing: String
-}
-*/
+impl<'a> TryFrom<RawNode<'a>> for Sequence {
+    type Error = String; // TODO: Proper error
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
-/// Represents the valid sequence child elements as defined in the "Child Elements" section of the [PDSC sequence element](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_sequence)
-pub struct SequenceElement {
-    #[serde(rename = "control")]
-    control: Option<SequenceControl>,
-    #[serde(rename = "block")]
-    block: Option<SequenceBlock>,
+    fn try_from(value: RawNode<'a>) -> Result<Self, Self::Error> {
+        // Validate that this is a sequence node
+        let node_name = value.tag_name().name();
+        assert_eq!(node_name, "sequence");
+
+        // Get the name
+        let sequence_name = value.attribute("name").expect("Missing requeired field name");
+        println!("name: {}", sequence_name);
+
+        // Get the optional attributes
+        let sequence_processor_name = value.attribute("Pname")
+            .map_or_else(
+                || None,
+                |v| Some(v.to_string())
+            );
+        let sequence_disable = {
+            if let Some(v) = value.attribute("disable") {
+                let disable_value: bool = v.parse().expect("Non boolean value in disable field");
+                Some(disable_value)
+            } else {
+                None
+            }
+        };
+        let sequence_info = value.attribute("info")
+            .map_or_else(
+                || None,
+                |v| Some(v.to_string())
+            );
+
+        // The sequence elements
+        let mut elements: Vec<SequenceElement> = Vec::new();
+
+        // Try to parse the child nodes
+        for child in value.children().filter(|c| c.is_element()) {
+            let element: SequenceElement = child.try_into().expect("Illegal child");
+
+            elements.push(element);
+        }
+
+        Ok(Sequence {
+            name: sequence_name.to_string(),
+            processor_name: sequence_processor_name,
+            disable: sequence_disable,
+            info: sequence_info,
+            elements
+        })
+    }
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for SequenceElement {
+    type Error = String; // TODO: Proper error
+
+    fn try_from(value: Node<'a, 'input>) -> Result<Self, Self::Error> {
+        match value.tag_name().name().to_lowercase().as_str() {
+            "block" => {
+                Ok(
+                    <Node<'_, '_> as TryInto<SequenceBlock>>::try_into(value)
+                        .unwrap().into()
+                )
+            },
+            "control" => {
+                Ok(
+                    <Node<'_, '_> as TryInto<SequenceControl>>::try_into(value)
+                        .unwrap().into()
+                )
+            },
+            _ => panic!("Failed to convert to sequence element")
+        }
+        // TODO: Parse content
+
+    }
+}
+
+impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for SequenceBlock {
+    type Error = String; // TODO: Proper error
+
+    fn try_from(value: Node<'a, 'input>) -> Result<Self, Self::Error> {
+        let block = serde_roxmltree::from_node(value).unwrap();
+
+        // TODO: Parse content
+
+        Ok(block)
+    }
+}
+
+impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for SequenceControl {
+    type Error = String; // TODO: Proper error
+
+    fn try_from(value: Node<'a, 'input>) -> Result<Self, Self::Error> {
+        // Use serde_roxmltree to parse the basic elements
+        let mut block: Self = serde_roxmltree::from_node(value).unwrap();
+
+        // Try to parse the child nodes
+        for child in value.children().filter(|c| c.is_element()) {
+            let element: SequenceElement = child.try_into().expect("Illegal child");
+
+            block.elements.push(element);
+        }
+
+        // TODO: Parse content
+
+        Ok(block)
+    }
+}
+
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
+ /// Represents the valid sequence child elements as defined in the "Child Elements" section of the [PDSC sequence element](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_sequence)
+pub enum SequenceElement {
+    Control(SequenceControl),
+    Block(SequenceBlock),
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 /// Represents a [PDSC Control Sequence](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_seq_control)
 pub struct SequenceControl {
     /// If conditional
@@ -233,12 +362,20 @@ pub struct SequenceControl {
     /// Timeout in microseconds, a value of 0 is the same as None
     timeout: Option<u64>,
 
-    /// Child elements in the sequence
-    #[serde(rename = "#content")]
+    /// Decsriptive text, e.g. for diagnostics
+    info: Option<String>,
+
+    #[serde(skip)]
     elements: Vec<SequenceElement>
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+impl From<SequenceControl> for SequenceElement {
+    fn from(value: SequenceControl) -> Self {
+        SequenceElement::Control(value)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Deserialize)]
 /// Represents a [PDSC Block Sequence](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_seq_block)
 pub struct SequenceBlock {
     /// If `Some(true)` the block must be executed atomically, see the description on CMSIS Pack website.
@@ -250,4 +387,246 @@ pub struct SequenceBlock {
     #[serde(rename = "#content")]
     /// Sequence block content
     content: String
+}
+
+impl From<SequenceBlock> for SequenceElement {
+    fn from(value: SequenceBlock) -> Self {
+        SequenceElement::Block(value)
+    }
+}
+
+#[cfg(test)]
+mod sequence_tests {
+    use roxmltree::Document;
+use serde_roxmltree::RawNode;
+
+use crate::pdsc::{Sequence, SequenceBlock, SequenceControl, SequenceElement};
+
+    #[test]
+    fn basic_sequence() {
+        let xml_str =
+r#"<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="ResetSystem">
+    <block>
+        Sequence("ResetAndHalt");
+    </block>
+</sequence>"#;
+
+        let document = Document::parse(xml_str).unwrap();
+        let sequence_node = document.root_element();
+        let raw_node: RawNode = RawNode(sequence_node);
+
+        let sequence: Sequence = raw_node.try_into().unwrap();
+
+        println!("node: {:#?}", raw_node);
+        println!("node: {:#?}", sequence);
+    }
+
+    #[test]
+    /// Tests the example sequence from https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_sequence
+    fn full_sequence() {
+        let xml_str =
+r#"<?xml version="1.0" encoding="UTF-8"?>
+<sequence name="UserSequence">
+    <block info="Define variables and do debug accesses">
+        __var tpWidth = (__traceout &amp; 0x003F0000) >> 16;
+        ...
+    </block>
+
+    <control if="__traceout &amp; 0x2" info="Parallel Trace Port enabled">
+        <block>
+            // Do something generic for parallel trace port trace
+        </block>
+
+        <control if="tpWidth == 1" info="Configure device for 1-bit TPIU trace.">
+            <block>
+                // Do debug accesses
+            </block>
+        </control>
+
+        <control if="tpWidth == 2" info="Configure device for 2-bit TPIU trace.">
+            <block>
+                // Do debug accesses
+            </block>
+        </control>
+
+        <control if="tpWidth == 4" info="Configure device for 4-bit TPIU trace.">
+            <block>
+                // Do debug accesses
+            </block>
+        </control>
+    </control>
+</sequence>"#;
+
+        let document = Document::parse(xml_str).unwrap();
+        let sequence_node = document.root_element();
+        let raw_node: RawNode = RawNode(sequence_node);
+
+        let sequence: Sequence = raw_node.try_into().unwrap();
+
+        // Check basic info
+        assert_eq!(sequence.name, "UserSequence".to_string());
+        assert_eq!(sequence.disable, None);
+        assert_eq!(sequence.info, None);
+        assert_eq!(sequence.processor_name, None);
+
+        // Define a repeated element for future use
+        let debug_access_block: SequenceElement = SequenceBlock {
+            atomic: None,
+            info: None,
+            content: r#"
+                // Do debug accesses
+            "#.to_string(),
+        }.into();
+
+        // Check that the elements are correct and in the correct order
+        let expected_elements: Vec<crate::pdsc::SequenceElement> = vec![
+            SequenceBlock {
+                atomic: None,
+                info: Some("Define variables and do debug accesses".to_string()),
+                content: r#"
+        __var tpWidth = (__traceout & 0x003F0000) >> 16;
+        ...
+    "#.to_string()
+            }.into(),
+            SequenceControl {
+                conditional_if: Some("__traceout & 0x2".to_string()),
+                conditional_while: None,
+                timeout: None,
+                info: Some("Parallel Trace Port enabled".to_string()),
+                elements: vec![
+                    SequenceBlock {
+                        atomic: None,
+                        info: None,
+                        content: r#"
+            // Do something generic for parallel trace port trace
+        "#.to_string(),
+                    }.into(),
+                    SequenceControl {
+                        conditional_if: Some("tpWidth == 1".to_string()),
+                        conditional_while: None,
+                        timeout: None,
+                        info: Some("Configure device for 1-bit TPIU trace.".to_string()),
+                        elements: vec![
+                            debug_access_block.clone().into()
+                        ]
+                    }.into(),
+                    SequenceControl {
+                        conditional_if: Some("tpWidth == 2".to_string()),
+                        conditional_while: None,
+                        timeout: None,
+                        info: Some("Configure device for 2-bit TPIU trace.".to_string()),
+                        elements: vec![
+                            debug_access_block.clone().into()
+                        ]
+                    }.into(),
+                    SequenceControl {
+                        conditional_if: Some("tpWidth == 4".to_string()),
+                        conditional_while: None,
+                        timeout: None,
+                        info: Some("Configure device for 4-bit TPIU trace.".to_string()),
+                        elements: vec![
+                            debug_access_block.clone().into()
+                        ]
+                    }.into()
+                ]
+            }.into()
+        ];
+
+        println!("Expected: {:#?}", expected_elements);
+        println!("Actual: {:#?}", sequence.elements);
+
+        assert_eq!(sequence.elements, expected_elements);
+
+    }
+
+    #[test]
+    fn basic_sequence_block() {
+        let xml_str =
+r#"<?xml version="1.0" encoding="UTF-8"?>
+<block info="Define condition variales for later use in block elements.">
+    // Variable definition by __var keyword
+    __var doIfBlock      = 1;
+    __var whileCondition = 1;
+</block>"#;
+
+        let document = Document::parse(xml_str).unwrap();
+        let sequence_node = document.root_element();
+        let raw_node: RawNode = RawNode(sequence_node);
+
+        let block: SequenceBlock = raw_node.0.try_into().unwrap();
+
+        assert_eq!(block.info, Some("Define condition variales for later use in block elements.".to_string()));
+        assert_eq!(block.atomic, None);
+        assert_eq!(block.content, r#"
+    // Variable definition by __var keyword
+    __var doIfBlock      = 1;
+    __var whileCondition = 1;
+"#
+        );
+    }
+
+    #[test]
+    fn parse_control_element_if() {
+        let xml_str =
+r#"<?xml version="1.0" encoding="UTF-8"?>
+<control if="doIfBlock">
+    <block>
+        // Do debug accesses
+    </block>
+</control>"#;
+
+        let document = Document::parse(xml_str).unwrap();
+        let sequence_node = document.root_element();
+        let raw_node: RawNode = RawNode(sequence_node);
+
+        let block: SequenceControl = raw_node.0.try_into().unwrap();
+
+        println!("{:#?}", block);
+        assert_eq!(block.info, None);
+        assert_eq!(block.conditional_if, Some("doIfBlock".to_string()));
+        assert_eq!(block.conditional_while, None);
+        assert_eq!(block.timeout, None);
+        assert_eq!(block.elements, vec![
+            SequenceBlock{
+                atomic: None,
+                info: None,
+                content: "\n        // Do debug accesses\n    ".to_string()
+            }.into()
+        ]);
+    }
+
+    #[test]
+    fn parse_control_element_while() {
+        let xml_str =
+r#"<?xml version="1.0" encoding="UTF-8"?>
+<control while="whileCondition" timeout="5000">
+    <block>
+        // Execute while "whileCondition" different from '0' with a timeout of 5ms
+        whileCondition = 0;
+    </block>
+</control>"#;
+
+        let document = Document::parse(xml_str).unwrap();
+        let sequence_node = document.root_element();
+        let raw_node: RawNode = RawNode(sequence_node);
+
+        let block: SequenceControl = raw_node.0.try_into().unwrap();
+
+        println!("{:#?}", block);
+        assert_eq!(block.info, None);
+        assert_eq!(block.conditional_if, None);
+        assert_eq!(block.conditional_while, Some("whileCondition".to_string()));
+        assert_eq!(block.timeout, Some(5000));
+        assert_eq!(block.elements, vec![
+            SequenceBlock{
+                atomic: None,
+                info: None,
+                content: r#"
+        // Execute while "whileCondition" different from '0' with a timeout of 5ms
+        whileCondition = 0;
+    "#.to_string()
+            }.into()
+        ]);
+    }
 }

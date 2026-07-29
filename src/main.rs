@@ -50,7 +50,8 @@ fn main() {
     let mut pdsc_content: String = String::new();
     f.read_to_string(&mut pdsc_content).unwrap();
 
-    let pdsc = pdsc::Package::new(&pdsc_content);
+    let document = roxmltree::Document::parse(&pdsc_content).unwrap();
+    let pdsc = pdsc::Package::new(&document);
 
     debug!("{:#?}", pdsc);
 
