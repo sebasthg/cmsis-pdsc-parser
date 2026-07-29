@@ -21,6 +21,7 @@ impl<'a> Package<'a> {
 
         // Parse the "wild" string conents into structured data
         package.devices.family.debugvars.parse_debugvars();
+        package.devices.family.sequences.parse_sequences();
 
         // Return the data
         package
@@ -190,22 +191,21 @@ pub struct Sequences<'a> {
     sequences: Vec<Sequence>
 }
 
-/*
 impl<'a> Sequences<'a> {
-
-    ///
+    /// Iteates through the raw nodes and parses the sequences
     pub fn parse_raw_nodes_content(&self) -> Vec<Sequence> {
-        todo!()
+        self.raw_nodes.iter().map(|node| {
+            node.0.try_into().unwrap()
+        }).collect()
     }
 
     /// Parses the raw XML Sequence nodes and stores the parsed sequences in [Self::sequences]
-    pub fn parse_sequences(&'a mut self) {
+    pub fn parse_sequences(&mut self) {
         let sequences = Self::parse_raw_nodes_content(&self);
 
         self.sequences = sequences;
     }
 }
-*/
 
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -223,19 +223,14 @@ pub struct Sequence {
     /// Descriptive text about the sequence
     info: Option<String>,
 
-    /// Child elements in the sequence
-    //#[serde(rename = "#content")]
-    //#[serde(borrow)]
-    //content: RawNode<'a>,
-
     #[serde(skip)]
     elements: Vec<SequenceElement>
 }
 
-impl<'a> TryFrom<RawNode<'a>> for Sequence {
+impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for Sequence {
     type Error = String; // TODO: Proper error
 
-    fn try_from(value: RawNode<'a>) -> Result<Self, Self::Error> {
+    fn try_from(value: Node<'a, 'input>) -> Result<Self, Self::Error> {
         // Validate that this is a sequence node
         let node_name = value.tag_name().name();
         assert_eq!(node_name, "sequence");
@@ -416,7 +411,7 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
         let sequence_node = document.root_element();
         let raw_node: RawNode = RawNode(sequence_node);
 
-        let sequence: Sequence = raw_node.try_into().unwrap();
+        let sequence: Sequence = raw_node.0.try_into().unwrap();
 
         println!("node: {:#?}", raw_node);
         println!("node: {:#?}", sequence);
@@ -462,7 +457,7 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
         let sequence_node = document.root_element();
         let raw_node: RawNode = RawNode(sequence_node);
 
-        let sequence: Sequence = raw_node.try_into().unwrap();
+        let sequence: Sequence = raw_node.0.try_into().unwrap();
 
         // Check basic info
         assert_eq!(sequence.name, "UserSequence".to_string());
