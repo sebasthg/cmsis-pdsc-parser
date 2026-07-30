@@ -6,6 +6,8 @@ use serde::{Deserialize, de::value};
 use log::{debug, error, trace, warn};
 use serde_roxmltree::RawNode;
 
+use crate::debug_access::Statement;
+
 #[derive(Debug, PartialEq, Deserialize)]
 /// Represents [PDSC Package](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_package_pg.html)
 /// which is the root element of the PDSC file
@@ -237,7 +239,6 @@ impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for Sequence {
 
         // Get the name
         let sequence_name = value.attribute("name").expect("Missing requeired field name");
-        println!("name: {}", sequence_name);
 
         // Get the optional attributes
         let sequence_processor_name = value.attribute("Pname")
@@ -307,10 +308,8 @@ impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for SequenceBlock {
     type Error = String; // TODO: Proper error
 
     fn try_from(value: Node<'a, 'input>) -> Result<Self, Self::Error> {
-        let block = serde_roxmltree::from_node(value).unwrap();
-
-        // TODO: Parse content
-
+        let mut block: Self = serde_roxmltree::from_node(value).unwrap();
+        block.parse_statements();
         Ok(block)
     }
 }
@@ -370,7 +369,7 @@ impl From<SequenceControl> for SequenceElement {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Deserialize, Default)]
 /// Represents a [PDSC Block Sequence](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_seq_block)
 pub struct SequenceBlock {
     /// If `Some(true)` the block must be executed atomically, see the description on CMSIS Pack website.
@@ -381,7 +380,28 @@ pub struct SequenceBlock {
 
     #[serde(rename = "#content")]
     /// Sequence block content
-    content: String
+    content: String,
+
+    #[serde(skip)]
+    /// [Statement]s resulting from the parsing of [Self::content]
+    statements: Vec<Statement>
+}
+
+impl SequenceBlock {
+    /// Parses [Self::content] into a list of [Statement]s
+    pub fn parse_statements_content(&self) -> Vec<Statement> {
+        self.content.lines()
+            .flat_map(|line| line.split(';'))
+            .map(str::trim)
+            .filter(|s| !s.is_empty())
+            .map(|s| Statement::from(s.to_string()))
+            .collect()
+    }
+
+    /// Parses the block content and stores the result in [Self::statements]
+    pub fn parse_statements(&mut self) {
+        self.statements = self.parse_statements_content();
+    }
 }
 
 impl From<SequenceBlock> for SequenceElement {
@@ -395,7 +415,7 @@ mod sequence_tests {
     use roxmltree::Document;
 use serde_roxmltree::RawNode;
 
-use crate::pdsc::{Sequence, SequenceBlock, SequenceControl, SequenceElement};
+use crate::{debug_access::{Assignment, Expression, Statement::{self}}, pdsc::{Sequence, SequenceBlock, SequenceControl, SequenceElement}};
 
     #[test]
     fn basic_sequence() {
@@ -425,7 +445,6 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
 <sequence name="UserSequence">
     <block info="Define variables and do debug accesses">
         __var tpWidth = (__traceout &amp; 0x003F0000) >> 16;
-        ...
     </block>
 
     <control if="__traceout &amp; 0x2" info="Parallel Trace Port enabled">
@@ -472,6 +491,9 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
             content: r#"
                 // Do debug accesses
             "#.to_string(),
+            statements: vec![
+                Statement::Comment("// Do debug accesses".to_string())
+            ]
         }.into();
 
         // Check that the elements are correct and in the correct order
@@ -481,8 +503,13 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
                 info: Some("Define variables and do debug accesses".to_string()),
                 content: r#"
         __var tpWidth = (__traceout & 0x003F0000) >> 16;
-        ...
-    "#.to_string()
+    "#.to_string(),
+                statements: vec![
+                    Statement::Definition(Assignment {
+                        variable: "tpWidth".to_string(),
+                        expression: Expression::Normal("(__traceout & 0x003F0000) >> 16".to_string())
+                    })
+                ]
             }.into(),
             SequenceControl {
                 conditional_if: Some("__traceout & 0x2".to_string()),
@@ -496,6 +523,9 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
                         content: r#"
             // Do something generic for parallel trace port trace
         "#.to_string(),
+                        statements: vec![
+                            Statement::Comment("// Do something generic for parallel trace port trace".to_string())
+                        ]
                     }.into(),
                     SequenceControl {
                         conditional_if: Some("tpWidth == 1".to_string()),
@@ -559,6 +589,17 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
     __var whileCondition = 1;
 "#
         );
+        assert_eq!(block.statements, vec![
+            Statement::Comment("// Variable definition by __var keyword".to_string()),
+            Statement::Definition(Assignment {
+                variable: "doIfBlock".to_string(),
+                expression: Expression::Normal("1".to_string())
+            }),
+            Statement::Definition(Assignment {
+                variable: "whileCondition".to_string(),
+                expression: Expression::Normal("1".to_string())
+            })
+        ]);
     }
 
     #[test]
@@ -586,7 +627,10 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
             SequenceBlock{
                 atomic: None,
                 info: None,
-                content: "\n        // Do debug accesses\n    ".to_string()
+                content: "\n        // Do debug accesses\n    ".to_string(),
+                statements: vec![
+                    Statement::Comment("// Do debug accesses".to_string())
+                ]
             }.into()
         ]);
     }
@@ -620,7 +664,14 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
                 content: r#"
         // Execute while "whileCondition" different from '0' with a timeout of 5ms
         whileCondition = 0;
-    "#.to_string()
+    "#.to_string(),
+                statements: vec![
+                    Statement::Comment("// Execute while \"whileCondition\" different from '0' with a timeout of 5ms".to_string()),
+                    Statement::Assignment(Assignment {
+                        variable: "whileCondition".to_string(),
+                        expression: Expression::Normal("0".to_string())
+                    })
+                ]
             }.into()
         ]);
     }

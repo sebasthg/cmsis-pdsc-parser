@@ -12,6 +12,9 @@ pub enum Statement {
     /// A variable assignment, e.g. `variable = expression;`
     Assignment(Assignment),
 
+    /// A variable definition, e.g. `__var variable = 0;`
+    Definition(Assignment),
+
     /// Comment, e.g. `// This is a comment`
     Comment(String),
 }
@@ -29,9 +32,8 @@ impl From<String> for Statement {
         // If present remove the semicolon
         let input = input.strip_suffix(";").unwrap_or(&input).to_string();
 
-        // Check if this is an assignment
+        // Check if this is an assignment or declaration
         let split: Vec<&str> = input.split_inclusive("=").collect();
-        println!("{:?}", split);
         match split.len() {
             0 => unreachable!("String split should never return 0 elements"),
             1 => {
@@ -42,20 +44,25 @@ impl From<String> for Statement {
             _ => {
                 let variable = split[0]
                     .strip_suffix('=')
+                    // Safety: This should be unreachable
                     .expect("Missing '=' after inclusive split on '='")
-                    .trim()
-                    .to_string();
+                    .trim();
 
-                let expression = split[1..]
+                let expression: Expression = split[1..]
                     .iter()
                     .copied()
                     .collect::<String>()
                     .trim()
-                    .to_string();
+                    .into();
 
-                return Statement::Assignment(
-                    Assignment { variable, expression }
-                )
+                match variable.strip_prefix("__var ") {
+                    Some(variable) => Statement::Definition(
+                        Assignment { variable: variable.to_string(), expression }
+                    ),
+                    None => Statement::Assignment(
+                        Assignment { variable: variable.to_string(), expression }
+                    )
+                }
             }
         }
     }
@@ -65,7 +72,7 @@ impl From<String> for Statement {
 /// A variable assignment, e.g. `variable = expression;`
 pub struct Assignment {
     pub variable: String,
-    pub expression: String
+    pub expression: Expression
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -248,7 +255,7 @@ mod tests {
         assert_eq!(statement, Statement::Assignment(
             Assignment {
                 variable: "thisValue".to_string(),
-                expression: "(readTheCoolRegister(0x248) == 5)".to_string()
+                expression: Expression::Normal("(readTheCoolRegister(0x248) == 5)".to_string())
             }
         ));
     }
@@ -261,7 +268,21 @@ mod tests {
 
         assert_eq!(statement, Statement::Assignment(
             Assignment {
-                expression: "expression".to_string(),
+                expression: Expression::Normal("expression".to_string()),
+                variable: "variable".to_string(),
+            }
+        ))
+    }
+
+    #[test]
+    fn parse_definition() {
+        let line = "__var variable = 0;".to_string();
+
+        let statement: Statement = line.into();
+
+        assert_eq!(statement, Statement::Definition(
+            Assignment {
+                expression: Expression::Normal("0".to_string()),
                 variable: "variable".to_string(),
             }
         ))
