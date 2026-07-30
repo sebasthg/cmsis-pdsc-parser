@@ -699,6 +699,23 @@ mod tests {
     }
 
     #[test]
+    fn parse_function_call_nested_arg() {
+        // Read32(base) is an argument to Write32 — split_args must not split on the inner comma
+        let line = "Write32(addr, Read32(base));".to_string();
+
+        let statement: Statement = line.into();
+
+        assert_eq!(statement, Statement::Expression(Expression::FunctionCall(Box::new(
+            DebugFunction::Write32 {
+                addr: Expression::Normal("addr".to_string()),
+                val:  Expression::FunctionCall(Box::new(DebugFunction::Read32 {
+                    addr: Expression::Normal("base".to_string()),
+                })),
+            }
+        ))));
+    }
+
+    #[test]
     #[should_panic(expected = "Unknown debug access function: GetBase")]
     fn unknown_function_panics() {
         let _: Expression = "GetBase()".into();
