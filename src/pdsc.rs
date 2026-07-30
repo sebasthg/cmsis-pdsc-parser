@@ -415,7 +415,7 @@ mod sequence_tests {
     use roxmltree::Document;
 use serde_roxmltree::RawNode;
 
-use crate::{debug_access::{Assignment, Expression, Statement::{self}}, pdsc::{Sequence, SequenceBlock, SequenceControl, SequenceElement}};
+use crate::{debug_access::{Assignment, DebugFunction, Expression, Statement::{self}}, pdsc::{Sequence, SequenceBlock, SequenceControl, SequenceElement}};
 
     #[test]
     fn basic_sequence() {
@@ -433,8 +433,19 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
 
         let sequence: Sequence = raw_node.0.try_into().unwrap();
 
-        println!("node: {:#?}", raw_node);
-        println!("node: {:#?}", sequence);
+        assert_eq!(sequence.name, "ResetSystem".to_string());
+        assert_eq!(sequence.elements, vec![
+            SequenceBlock {
+                atomic: None,
+                info: None,
+                content: "\n        Sequence(\"ResetAndHalt\");\n    ".to_string(),
+                statements: vec![
+                    Statement::Expression(Expression::FunctionCall(Box::new(DebugFunction::Sequence {
+                        name: Expression::Normal("\"ResetAndHalt\"".to_string())
+                    })))
+                ]
+            }.into()
+        ]);
     }
 
     #[test]
