@@ -5,6 +5,7 @@ use log::{debug, info};
 const PDSC_PATH: &str = "Microchip.PIC32CM-PL_DFP.pdsc";
 
 mod pdsc;
+mod debug_access;
 
 
 const EXPECTED_DEBUGVARS: [(&str, u64); 26] = [
