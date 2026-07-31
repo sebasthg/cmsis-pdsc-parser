@@ -576,6 +576,17 @@ mod tests {
     }
 
     #[test]
+    fn parse_expression_normal_variable() {
+        let line = "doIfBlock".to_string();
+
+        let statement: Statement = line.into();
+
+        assert_eq!(statement, Statement::Expression(
+            Expression::Normal("doIfBlock".to_string())
+        ));
+    }
+
+    #[test]
     fn parse_expression_conditional() {
         let line = "(x < y) ? a : b".to_string();
 

@@ -6,7 +6,7 @@ use serde::{Deserialize, de::value};
 use log::{debug, error, trace, warn};
 use serde_roxmltree::RawNode;
 
-use crate::debug_access::Statement;
+use crate::debug_access::{self, Statement};
 
 #[derive(Debug, PartialEq, Deserialize)]
 /// Represents [PDSC Package](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_package_pg.html)
@@ -328,7 +328,18 @@ impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for SequenceControl {
             block.elements.push(element);
         }
 
-        // TODO: Parse content
+        // Parse the conditional into an Expression
+        let conditional_string: &str;
+        if let Some(ref val) = block.conditional_if {
+            conditional_string = val.as_str()
+        } else if let Some(ref val) = block.conditional_while {
+            conditional_string = val.as_str()
+        } else {
+            return Err("Failed to get conditional string".to_string());
+        };
+
+        let conditional: debug_access::Expression = conditional_string.try_into().expect("Failed to parse conditional string");
+        block.conditional = Some(conditional);
 
         Ok(block)
     }
@@ -359,8 +370,17 @@ pub struct SequenceControl {
     /// Decsriptive text, e.g. for diagnostics
     info: Option<String>,
 
-    #[serde(skip)]
-    elements: Vec<SequenceElement>
+    #[serde(skip_deserializing)]
+    /// The elements contained by the control block
+    elements: Vec<SequenceElement>,
+
+    #[serde(skip_deserializing)]
+    /// The conditional parsed as an Expression
+    ///
+    /// The [Expression](debug_access::Expression) is wrapped in an [Option] due to
+    /// provoding a default value for [serde] when deserializing. It should be safe
+    /// to unwrap this value.
+    conditional: Option<debug_access::Expression>
 }
 
 impl From<SequenceControl> for SequenceElement {
@@ -545,7 +565,10 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
                         info: Some("Configure device for 1-bit TPIU trace.".to_string()),
                         elements: vec![
                             debug_access_block.clone().into()
-                        ]
+                        ],
+                        conditional: Some(
+                            Expression::Normal("tpWidth == 1".to_string())
+                        )
                     }.into(),
                     SequenceControl {
                         conditional_if: Some("tpWidth == 2".to_string()),
@@ -554,7 +577,10 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
                         info: Some("Configure device for 2-bit TPIU trace.".to_string()),
                         elements: vec![
                             debug_access_block.clone().into()
-                        ]
+                        ],
+                        conditional: Some(
+                            Expression::Normal("tpWidth == 2".to_string())
+                        )
                     }.into(),
                     SequenceControl {
                         conditional_if: Some("tpWidth == 4".to_string()),
@@ -563,9 +589,13 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
                         info: Some("Configure device for 4-bit TPIU trace.".to_string()),
                         elements: vec![
                             debug_access_block.clone().into()
-                        ]
+                        ],
+                        conditional: Some(
+                            Expression::Normal("tpWidth == 4".to_string())
+                        )
                     }.into()
-                ]
+                ],
+                conditional: Some(Expression::Normal("__traceout & 0x2".to_string()))
             }.into()
         ];
 

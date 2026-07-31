@@ -101,7 +101,6 @@
             __var DSU_STATUSB_BCCD0_BIT = 0x1;
             __var CRSTEXTBIT = 0x100;
             __var BREXTBIT = 0x10000; //BREXT bit in DSU STATUSA
-            // :) ; f$8
             __var BOOTROM_STATUS_INITCHECK_OK = 0x3;
             __var BOOTROM_STATUS_BOOTOK = 0x4;
             __var BOOTROM_STATUS_OK = 0x9;
