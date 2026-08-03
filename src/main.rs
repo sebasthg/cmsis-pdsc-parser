@@ -47,6 +47,43 @@ const EXPECTED_DEBUGVARS: [(&str, u64); 26] = [
     ("RAM_BUFFER", 0x20000000)
 ];
 
+const EXPECTED_KEYWORDS: [&str; 34] = [
+    "Microchip",
+    "Device Family Package Microchip",
+    "Device Support",
+    "PIC32CM-PL",
+    "AVR-DA",
+    "AVR",
+    "8-bit",
+    "64KB Flash",
+    "PTC",
+    "Peripheral Touch Controller",
+    "Capacitive Touch",
+    "12-bit differential ADC",
+    "Comparator",
+    "Zero Cross Detect",
+    "ZCD",
+    "10-bit DAC",
+    "PWM",
+    "Timer/Counter",
+    "MIPS",
+    "24 MHz",
+    "PLL",
+    "32",
+    "Bit",
+    "Microcontrollers",
+    "32-Bit Microcontrollers",
+    "Touch",
+    "MotorControl",
+    "Functional Safety Ready",
+    "Motor Control",
+    "Microcontrollers And Processors",
+    "UltraLowPower",
+    "Ultra Low Power",
+    "8",
+    "8-Bit Microcontrollers",
+];
+
 fn main() {
     env_logger::init();
 
@@ -117,6 +154,11 @@ fn main() {
       "#.to_string(),
         ..Default::default()
     });
+
+    // Validate keywords
+    let keywords = pdsc.keywords.unwrap().keywords;
+    let expected_keywords: Vec<String> = EXPECTED_KEYWORDS.iter().map(|s| s.to_string()).collect();
+    assert_eq!(keywords, expected_keywords);
 
     // Validate family info
     let family = pdsc.devices.family;

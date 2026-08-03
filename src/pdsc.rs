@@ -55,7 +55,8 @@ pub struct Package<'a> {
     /// Section describing one or more changelog files
     pub changelogs: Option<Changelogs>,
 
-    // TODO: Add keywords
+    /// Keywords that might be used to find a software pack
+    pub keywords: Option<Keywords>,
 
     // TODO: Add environments
 
@@ -212,6 +213,13 @@ pub struct Changelog {
 
     /// If set to true the changelog is associated with all apis and components not explicitly referncing another changlog
     pub default: Option<String>
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+/// Represents the [PDSC Keywords](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_keywords.html) element
+pub struct Keywords {
+    #[serde(rename = "keyword")]
+    pub keywords: Vec<String>
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
