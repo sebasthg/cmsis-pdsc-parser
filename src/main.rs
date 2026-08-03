@@ -72,6 +72,7 @@ fn main() {
     assert_eq!(pdsc.support_contact, Some("https://www.microchip.com/en-us/support".to_string()));
     assert_eq!(pdsc.license, Some("LICENSE.txt".to_string()));
     assert_eq!(pdsc.dominate, None);
+    assert_eq!(pdsc.repository, None);
 
     // Validate the license set
     let license_sets = pdsc.license_sets.unwrap().license_set;

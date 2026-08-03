@@ -44,9 +44,10 @@ pub struct Package<'a> {
     /// Specifies other CMSIS-Packs, programming languages, and compilers required by pack components
     pub requirements: Option<Requirements>,
 
-    // TODO: Add deprecated option create
+    // TODO: Add deprecated option `create`
 
-    // TODO: Add repository
+    /// HTTPS URL of a public repository tat the pack originates from
+    pub repository: Option<Repository>,
 
     // TODO: Add releases
 
@@ -161,6 +162,16 @@ pub struct License {
 pub struct Dominate {
     /// Descriptive text that explains the reason for dominate
     info: Option<String>
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+/// Represents the [PDSC Repository](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_repository.html) element
+pub struct Repository {
+    #[serde(rename = "type")]
+    pub repository_type: String,
+
+    #[serde(rename = "#content")]
+    pub url: String
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -568,7 +579,7 @@ mod sequence_tests {
     use roxmltree::Document;
 use serde_roxmltree::RawNode;
 
-use crate::{debug_access::{Assignment, DebugFunction, Expression, Statement::{self}}, pdsc::{Eccn, License, LicenseSet, Sequence, SequenceBlock, SequenceControl, SequenceElement}};
+use crate::{debug_access::{Assignment, DebugFunction, Expression, Statement::{self}}, pdsc::{Eccn, License, LicenseSet, Repository, Sequence, SequenceBlock, SequenceControl, SequenceElement}};
 
     #[test]
     fn basic_sequence() {
@@ -918,5 +929,18 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
                 }
             ]
         });
+    }
+
+    #[test]
+    fn parse_repository() {
+        let xml_str =
+r#"<?xml version="1.0" encoding="UTF-8"?>
+<repository type="git">https://github.com/ARM-software/CMSIS-Driver.git</repository>"#;
+
+        let repo: Repository = serde_roxmltree::from_str(xml_str).unwrap();
+
+        assert_eq!(repo.repository_type, "git".to_string());
+        assert_eq!(repo.url, "https://github.com/ARM-software/CMSIS-Driver.git".to_string());
+
     }
 }
