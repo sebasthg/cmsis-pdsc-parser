@@ -134,7 +134,7 @@ pub struct Web {
     pub url: String,
 
     /// Query parameters or arguments passed to the web service
-    #[serde(rename = "argument")]
+    #[serde(rename = "argument", default)]
     pub arguments: Vec<Argument>,
 }
 
@@ -176,7 +176,7 @@ pub struct Argument {
 /// Lists the files produced by the generator that the IDE should include in the project.
 pub struct ProjectFiles {
     /// Generated files to add to the project after generation completes
-    #[serde(rename = "file")]
+    #[serde(rename = "file", default)]
     pub files: Vec<File>,
 }
 
@@ -186,7 +186,7 @@ pub struct ProjectFiles {
 /// Lists generator tool files (executables, libraries, scripts) that ship inside the pack.
 pub struct Files {
     /// Generator tool files included in the pack
-    #[serde(rename = "file")]
+    #[serde(rename = "file", default)]
     pub files: Vec<File>,
 }
 
