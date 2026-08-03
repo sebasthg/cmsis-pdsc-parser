@@ -2,6 +2,8 @@ use std::io::Read;
 
 use log::{debug, info};
 
+use crate::pdsc::{License, LicenseSet};
+
 const PDSC_PATH: &str = "Microchip.PIC32CM-PL_DFP.pdsc";
 
 mod pdsc;
@@ -68,6 +70,22 @@ fn main() {
     assert_eq!(pdsc.url, "https://packs.download.microchip.com/".to_string());
     assert_eq!(pdsc.support_contact, Some("https://www.microchip.com/en-us/support".to_string()));
     assert_eq!(pdsc.license, Some("LICENSE.txt".to_string()));
+
+    // Validate the license set
+    let license_sets = pdsc.license_sets.unwrap().license_set;
+    assert_eq!(license_sets, vec![LicenseSet {
+        id: "all".to_string(),
+        default: Some(true),
+        gating: Some(false),
+        license: vec![
+            License {
+                name: "LICENSE.txt".to_string(),
+                title: "Apache License, Version 2.0".to_string(),
+                spdx: Some("Apache-2.0".to_string()),
+                url: Some("https://www.apache.org/licenses/LICENSE-2.0".to_string())
+            }
+        ]
+    }]);
 
     // Validate family info
     let family = pdsc.devices.family;

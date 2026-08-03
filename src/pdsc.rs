@@ -34,7 +34,8 @@ pub struct Package<'a> {
     /// Path to the license document of the Pack
     pub license: Option<String>,
 
-    // TODO: Add license set
+    /// Listing containing the collection of license fils
+    pub license_sets: Option<LicenseSets>,
 
     // TODO: Add dominate
 
@@ -110,6 +111,46 @@ pub struct Eccn {
     pub eu: String,
     #[serde(rename = "ECCN-US")]
     pub us: String,
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+/// Representation of the [PDSC LicenseSets](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_licenseSets_pg.html#element_licenseSets)
+/// element
+pub struct LicenseSets {
+    #[serde(rename = "licenseSet")]
+    pub license_set: Vec<LicenseSet>
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+/// Represents the [PDSC LicenseSetsType](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_licenseSets_pg.html#element_licenseSets)
+pub struct LicenseSet {
+    /// License set identifier string, must be uniqe in the PDSC file
+    pub id: String,
+    /// If set to true this license set is associated with all content, not explicitly referencing another license set
+    pub default: Option<bool>,
+    /// If set to true this license set is required to be accepted by the user before installation starts.
+    pub gating: Option<bool>,
+    /// Description of the license file refeneces
+    pub license: Vec<License>
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+/// Represents the [PDSC License](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_licenseSets_pg.html#element_licensefile)
+/// element.
+///
+/// Contains a description of an individual license file
+pub struct License {
+    /// License filename with pack base directory relative path
+    pub name: String,
+
+    /// Display sting used by tools to represent the license
+    pub title: String,
+
+    /// Machine readable licence ID string according to the [SPDX License List](https://spdx.org/licenses/)
+    pub spdx: Option<String>,
+
+    /// Public web link to the license text
+    pub url: Option<String>
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -517,7 +558,7 @@ mod sequence_tests {
     use roxmltree::Document;
 use serde_roxmltree::RawNode;
 
-use crate::{debug_access::{Assignment, DebugFunction, Expression, Statement::{self}}, pdsc::{Eccn, Sequence, SequenceBlock, SequenceControl, SequenceElement}};
+use crate::{debug_access::{Assignment, DebugFunction, Expression, Statement::{self}}, pdsc::{Eccn, License, LicenseSet, Sequence, SequenceBlock, SequenceControl, SequenceElement}};
 
     #[test]
     fn basic_sequence() {
@@ -840,4 +881,34 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
 
         assert!(eccn.is_err());
     }
+
+    #[test]
+    fn parse_license_set() {
+        let xml_str =
+r#"<?xml version="1.0" encoding="UTF-8"?>
+<licenseSet id="all" default="true" gating="false">
+    <license name="LICENSE.txt"
+        title="Apache License, Version 2.0"
+        spdx="Apache-2.0"
+        url="https://www.apache.org/licenses/LICENSE-2.0"/>
+</licenseSet>"#;
+
+        let license_set: LicenseSet = serde_roxmltree::from_str(xml_str).unwrap();
+
+        assert_eq!(license_set, LicenseSet {
+            id: "all".to_string(),
+            default: Some(true),
+            gating: Some(false),
+            license: vec![
+                License {
+                    name: "LICENSE.txt".to_string(),
+                    title: "Apache License, Version 2.0".to_string(),
+                    spdx: Some("Apache-2.0".to_string()),
+                    url: Some("https://www.apache.org/licenses/LICENSE-2.0".to_string())
+                }
+            ]
+        });
+
+
+}
 }
