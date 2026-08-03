@@ -56,9 +56,15 @@ fn main() {
 
     debug!("{:#?}", pdsc);
 
-    let family = pdsc.devices.family;
+    // Validate the desrciption field
+    assert_eq!(pdsc.description, pdsc::Description {
+        overview: Some("./OVERVIEW.md".to_string()),
+        content: Some("Microchip PIC32CM-PL Series Device Support".to_string())
+    });
+
 
     // Validate family info
+    let family = pdsc.devices.family;
     assert_eq!(&family.device_family, "PIC32CM-PL");
     assert_eq!(&family.vendor, "Microchip:3");
 

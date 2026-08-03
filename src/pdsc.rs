@@ -2,7 +2,7 @@
 
 use std::{collections::HashMap, fmt::Debug};
 use roxmltree::{Document, Node};
-use serde::{Deserialize, de::value};
+use serde::{Deserialize, Serialize, de::value};
 use log::{debug, error, trace, warn};
 use serde_roxmltree::RawNode;
 
@@ -12,8 +12,12 @@ use crate::debug_access::{self, Statement};
 /// Represents [PDSC Package](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_package_pg.html)
 /// which is the root element of the PDSC file
 pub struct Package<'a> {
+    /// Brief description of the sofware pack
+    pub description: Description,
+
     #[serde(borrow)]
-    pub devices: Devices<'a>
+    pub devices: Devices<'a>,
+
 }
 
 impl<'a> Package<'a> {
@@ -28,6 +32,18 @@ impl<'a> Package<'a> {
         // Return the data
         package
     }
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+/// Represents the [PDSC Descrpiton](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_package_description.html)
+/// element.
+pub struct Description {
+    /// File path, file name, and file extension with an overview of documentation in markdown format
+    pub overview: Option<String>,
+
+    /// The description body contaning a brief markdown desrciption
+    #[serde(rename = "#content")]
+    pub content: Option<String>
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
