@@ -62,6 +62,8 @@ fn main() {
         content: Some("Microchip PIC32CM-PL Series Device Support".to_string())
     });
 
+    // Validate that we don't have an ECCN field
+    assert_eq!(pdsc.eccn, None);
 
     // Validate family info
     let family = pdsc.devices.family;

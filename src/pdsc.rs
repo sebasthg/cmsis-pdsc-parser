@@ -15,6 +15,9 @@ pub struct Package<'a> {
     /// Brief description of the sofware pack
     pub description: Description,
 
+    /// Export Control Classification Numbers
+    pub eccn: Option<Eccn>,
+
     #[serde(borrow)]
     pub devices: Devices<'a>,
 
@@ -44,6 +47,15 @@ pub struct Description {
     /// The description body contaning a brief markdown desrciption
     #[serde(rename = "#content")]
     pub content: Option<String>
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+/// Represents the [PDSC ECCN](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_ECCN.html) element
+pub struct Eccn {
+    #[serde(rename = "ECCN-EU")]
+    pub eu: String,
+    #[serde(rename = "ECCN-US")]
+    pub us: String,
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -451,7 +463,7 @@ mod sequence_tests {
     use roxmltree::Document;
 use serde_roxmltree::RawNode;
 
-use crate::{debug_access::{Assignment, DebugFunction, Expression, Statement::{self}}, pdsc::{Sequence, SequenceBlock, SequenceControl, SequenceElement}};
+use crate::{debug_access::{Assignment, DebugFunction, Expression, Statement::{self}}, pdsc::{Eccn, Sequence, SequenceBlock, SequenceControl, SequenceElement}};
 
     #[test]
     fn basic_sequence() {
@@ -731,5 +743,47 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
                 ]
             }.into()
         ]);
+    }
+
+    #[test]
+    fn parse_eccn() {
+        let xml_str =
+r#"<?xml version="1.0" encoding="UTF-8"?>
+<ECCN>
+    <ECCN-EU>NEC</ECCN-EU>
+    <ECCN-US>5D992.c</ECCN-US>
+</ECCN>"#;
+
+        let eccn: Eccn = serde_roxmltree::from_str(xml_str).unwrap();
+
+        assert_eq!(eccn.eu, "NEC".to_string());
+        assert_eq!(eccn.us, "5D992.c".to_string());
+    }
+
+    #[test]
+    /// Test that ECCN parsing fails if either the EU or US field is missing.
+    ///
+    /// As per the Open [CMSIS Pack specification](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_ECCN.html)
+    /// if the ECCN field is present it must contain both the US and EU ECCN entries.
+    fn parse_eccn_missing_field() {
+        let xml_str =
+r#"<?xml version="1.0" encoding="UTF-8"?>
+<ECCN>
+    <ECCN-US>5D992.c</ECCN-US>
+</ECCN>"#;
+
+        let eccn: Result<Eccn, _> = serde_roxmltree::from_str(xml_str);
+
+        assert!(eccn.is_err());
+
+        let xml_str =
+r#"<?xml version="1.0" encoding="UTF-8"?>
+<ECCN>
+    <ECCN-EU>NEC</ECCN-EU>
+</ECCN>"#;
+
+        let eccn: Result<Eccn, _> = serde_roxmltree::from_str(xml_str);
+
+        assert!(eccn.is_err());
     }
 }
