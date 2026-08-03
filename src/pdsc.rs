@@ -7,6 +7,7 @@ use log::{debug, error, trace, warn};
 use serde_roxmltree::RawNode;
 
 use crate::debug_access::{self, Statement};
+use crate::requirements::Requirements;
 
 #[derive(Debug, PartialEq, Deserialize)]
 /// Represents [PDSC Package](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_package_pg.html)
@@ -40,7 +41,8 @@ pub struct Package<'a> {
     /// A pack that has dominate attribute overrules other packs
     pub dominate: Option<Dominate>,
 
-    // TODO: Add requirements
+    /// Specifies other CMSIS-Packs, programming languages, and compilers required by pack components
+    pub requirements: Option<Requirements>,
 
     // TODO: Add deprecated option create
 

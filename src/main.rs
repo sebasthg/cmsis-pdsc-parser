@@ -2,12 +2,13 @@ use std::io::Read;
 
 use log::{debug, info};
 
-use crate::pdsc::{License, LicenseSet};
+use crate::{pdsc::{License, LicenseSet}, requirements::{Package, PackagesList}};
 
 const PDSC_PATH: &str = "Microchip.PIC32CM-PL_DFP.pdsc";
 
 mod pdsc;
 mod debug_access;
+mod requirements;
 
 
 const EXPECTED_DEBUGVARS: [(&str, u64); 26] = [
@@ -87,6 +88,19 @@ fn main() {
             }
         ]
     }]);
+
+    // Validate the requirements
+    let requirements = pdsc.requirements.unwrap();
+    assert_eq!(requirements.packages, Some(PackagesList {
+        packages: vec![Package {
+            name: "CMSIS".to_string(),
+            vendor: "ARM".to_string(),
+            version: None
+        }]
+    }));
+    assert_eq!(requirements.compilers, None);
+    assert_eq!(requirements.languages, None);
+    assert_eq!(requirements.targets, None);
 
     // Validate family info
     let family = pdsc.devices.family;
