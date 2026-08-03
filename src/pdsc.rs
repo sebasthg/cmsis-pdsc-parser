@@ -8,6 +8,7 @@ use serde_roxmltree::RawNode;
 
 use crate::debug_access::{self, Statement};
 use crate::requirements::Requirements;
+use crate::generators::Generators;
 
 #[derive(Debug, PartialEq, Deserialize)]
 /// Represents [PDSC Package](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_package_pg.html)
@@ -61,7 +62,8 @@ pub struct Package<'a> {
     /// Grouping elements for environments information.
     pub environments: Option<Environments>,
 
-    // TODO: Add genertators
+    /// Specifies generator tools that have been used to generate components
+    pub generators: Option<Generators>,
 
     #[serde(borrow)]
     /// The device family, the devices, and variants
