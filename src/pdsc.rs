@@ -37,7 +37,8 @@ pub struct Package<'a> {
     /// Listing containing the collection of license fils
     pub license_sets: Option<LicenseSets>,
 
-    // TODO: Add dominate
+    /// A pack that has dominate attribute overrules other packs
+    pub dominate: Option<Dominate>,
 
     // TODO: Add requirements
 
@@ -151,6 +152,13 @@ pub struct License {
 
     /// Public web link to the license text
     pub url: Option<String>
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+/// Represents the [PDSC Dominate](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_dominate.html) element
+pub struct Dominate {
+    /// Descriptive text that explains the reason for dominate
+    info: Option<String>
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -908,7 +916,5 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
                 }
             ]
         });
-
-
-}
+    }
 }
