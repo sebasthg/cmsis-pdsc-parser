@@ -58,7 +58,8 @@ pub struct Package<'a> {
     /// Keywords that might be used to find a software pack
     pub keywords: Option<Keywords>,
 
-    // TODO: Add environments
+    /// Grouping elements for environments information.
+    pub environments: Option<Environments>,
 
     // TODO: Add genertators
 
@@ -218,8 +219,26 @@ pub struct Changelog {
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 /// Represents the [PDSC Keywords](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_keywords.html) element
 pub struct Keywords {
+    /// The vector of keywords
     #[serde(rename = "keyword")]
     pub keywords: Vec<String>
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+/// Represents the [PDSC Envrionments](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_components_pg.html#element_component_environments) element
+pub struct Environments {
+    /// The vector of environments
+    #[serde(rename = "environment")]
+    pub environments: Vec<Environment>
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+/// Represents the [PDSC Environment](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_environment) element
+pub struct Environment {
+    name: String,
+    #[serde(rename = "Pname")]
+    processor_name: Option<String>,
+    // TODO: Handle the `anyAttribute` children
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
