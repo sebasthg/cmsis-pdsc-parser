@@ -49,9 +49,11 @@ pub struct Package<'a> {
     /// HTTPS URL of a public repository tat the pack originates from
     pub repository: Option<Repository>,
 
-    // TODO: Add releases
+    /// Version release history with brief information about a software pack
+    pub releases: Releases,
 
-    // TODO: Add changelogs
+    /// Section describing one or more changelog files
+    pub changelogs: Option<Changelogs>,
 
     // TODO: Add keywords
 
@@ -172,6 +174,44 @@ pub struct Repository {
 
     #[serde(rename = "#content")]
     pub url: String
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize, Default)]
+/// Represents the [PDSC Releases](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_releases.html) element
+pub struct Releases {
+    pub release: Vec<Release>
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize, Default)]
+/// Represents the [PDSC Releaes](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_releases.html#element_release) element
+pub struct Release {
+    pub version: String,
+    pub date: Option<String>,
+    pub tag: Option<String>,
+    pub url: Option<String>,
+    pub deprecated: Option<String>,
+    pub replacement: Option<String>,
+    #[serde(rename = "#content")]
+    pub content: String
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+/// Represents the [PDSC ChangelogsType](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_changelogs_pg.html#element_changelogs) element
+pub struct Changelogs {
+    pub changelog: Vec<Changelog>
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+/// Represents the [PDSC Changelog](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_changelogs_pg.html#element_changelog) element
+pub struct Changelog {
+    /// Changelog identifier string, must be uniqe within the PDSC file
+    pub id: String,
+
+    /// A path relative to the PDSC fil and the filename of the changelog file
+    pub name: String,
+
+    /// If set to true the changelog is associated with all apis and components not explicitly referncing another changlog
+    pub default: Option<String>
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -576,10 +616,12 @@ impl From<SequenceBlock> for SequenceElement {
 
 #[cfg(test)]
 mod sequence_tests {
-    use roxmltree::Document;
+    use std::default;
+
+use roxmltree::Document;
 use serde_roxmltree::RawNode;
 
-use crate::{debug_access::{Assignment, DebugFunction, Expression, Statement::{self}}, pdsc::{Eccn, License, LicenseSet, Repository, Sequence, SequenceBlock, SequenceControl, SequenceElement}};
+use crate::{debug_access::{Assignment, DebugFunction, Expression, Statement::{self}}, pdsc::{Eccn, License, LicenseSet, Release, Releases, Repository, Sequence, SequenceBlock, SequenceControl, SequenceElement}};
 
     #[test]
     fn basic_sequence() {
@@ -942,5 +984,104 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
         assert_eq!(repo.repository_type, "git".to_string());
         assert_eq!(repo.url, "https://github.com/ARM-software/CMSIS-Driver.git".to_string());
 
+    }
+
+    #[test]
+    fn parse_releases() {
+        let xml_str =
+r#"<?xml version="1.0" encoding="UTF-8"?>
+<releases>
+  <release version="1.1.1" date="2020-05-12">Fixed a problem with the feature xyz.</release>
+  <release version="1.1.0" date="2020-03-13">Introduces a new feature xyz.</release>
+  <release version="1.0.0" date="2020-02-23">First published version.</release>
+</releases>
+"#;
+
+        let releases: Releases = serde_roxmltree::from_str(xml_str).unwrap();
+
+        assert_eq!(releases, Releases { release: vec![
+            Release {
+                version: "1.1.1".to_string(),
+                date: Some("2020-05-12".to_string()),
+                content: "Fixed a problem with the feature xyz.".to_string(),
+                ..default::Default::default()
+            },
+            Release {
+                version: "1.1.0".to_string(),
+                date: Some("2020-03-13".to_string()),
+                content: "Introduces a new feature xyz.".to_string(),
+                ..default::Default::default()
+            },
+            Release {
+                version: "1.0.0".to_string(),
+                date: Some("2020-02-23".to_string()),
+                content: "First published version.".to_string(),
+                ..default::Default::default()
+            },
+        ]});
+    }
+
+    #[test]
+    fn parse_releases_public_repo() {
+        let xml_str =
+r#"<?xml version="1.0" encoding="UTF-8"?>
+<releases>
+    <release version="2.1.0" tag="2.1.0" url="https://github.com/ARM-software/CMSIS-Driver/archive/2.1.0.zip">
+      Added LAN9220 Ethernet MAC+PHY driver.
+    </release>
+    <release version="2.0.0" tag="2.0.0" url="https://github.com/ARM-software/CMSIS-Driver/archive/2.0.0.zip">
+      First published version.
+    </release>
+</releases>"#;
+
+        let releases: Releases = serde_roxmltree::from_str(xml_str).unwrap();
+
+        assert_eq!(releases, Releases { release: vec![
+            Release {
+                version: "2.1.0".to_string(),
+                tag: Some("2.1.0".to_string()),
+                url: Some("https://github.com/ARM-software/CMSIS-Driver/archive/2.1.0.zip".to_string()),
+                content: "\n      Added LAN9220 Ethernet MAC+PHY driver.\n    ".to_string(),
+                ..default::Default::default()
+            },
+            Release {
+                version: "2.0.0".to_string(),
+                tag: Some("2.0.0".to_string()),
+                url: Some("https://github.com/ARM-software/CMSIS-Driver/archive/2.0.0.zip".to_string()),
+                content: "\n      First published version.\n    ".to_string(),
+                ..default::Default::default()
+            },
+        ]});
+    }
+
+    #[test]
+    fn parse_releases_deprecated() {
+        let xml_str =
+r#"<?xml version="1.0" encoding="UTF-8"?>
+<releases>
+  <release version="1.0.1" date="2020-04-18" deprecated="2020-04-18" replacement="Vendor.pack_name">
+  </release>
+  <release version="1.0.0" date="2020-03-24">Initial version.
+  </release>
+</releases>"#;
+
+        let releases: Releases = serde_roxmltree::from_str(xml_str).unwrap();
+
+        assert_eq!(releases, Releases { release: vec![
+            Release {
+                version: "1.0.1".to_string(),
+                date: Some("2020-04-18".to_string()),
+                deprecated: Some("2020-04-18".to_string()),
+                replacement: Some("Vendor.pack_name".to_string()),
+                content: "\n  ".to_string(),
+                ..default::Default::default()
+            },
+            Release {
+                version: "1.0.0".to_string(),
+                date: Some("2020-03-24".to_string()),
+                content: "Initial version.\n  ".to_string(),
+                ..default::Default::default()
+            },
+        ]});
     }
 }

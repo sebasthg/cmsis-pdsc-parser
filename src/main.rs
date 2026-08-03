@@ -73,6 +73,7 @@ fn main() {
     assert_eq!(pdsc.license, Some("LICENSE.txt".to_string()));
     assert_eq!(pdsc.dominate, None);
     assert_eq!(pdsc.repository, None);
+    assert_eq!(pdsc.changelogs, None);
 
     // Validate the license set
     let license_sets = pdsc.license_sets.unwrap().license_set;
@@ -102,6 +103,20 @@ fn main() {
     assert_eq!(requirements.compilers, None);
     assert_eq!(requirements.languages, None);
     assert_eq!(requirements.targets, None);
+
+    // Validate the relases
+    let releases = pdsc.releases;
+    assert_eq!(releases.release.len(), 6);
+    assert_eq!(releases.release[0], pdsc::Release {
+        version: "1.5.437".to_string(),
+        date: Some("2026-07-15".to_string()),
+        content: r#"
+      - Switched from single flashinfo with blocks and gaps to multiple discrete flashinfo entries for improved flash programming compatibility.
+      - Added protection against accidental permanent device lock when programming DAL=0.
+      - Fixed csolution blank project template to correctly locate cproject file.
+      "#.to_string(),
+        ..Default::default()
+    });
 
     // Validate family info
     let family = pdsc.devices.family;
