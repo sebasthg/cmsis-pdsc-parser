@@ -11,16 +11,70 @@ use crate::debug_access::{self, Statement};
 #[derive(Debug, PartialEq, Deserialize)]
 /// Represents [PDSC Package](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_package_pg.html)
 /// which is the root element of the PDSC file
+#[serde(rename_all = "camelCase")]
 pub struct Package<'a> {
+    /// Name of the software pack
+    pub name: String,
+
+    /// Name of the software pack supplier/vendor
+    pub vendor: String,
+
     /// Brief description of the sofware pack
     pub description: Description,
 
-    /// Export Control Classification Numbers
+    /// Export Control Classification Numbers for the EU and US
     pub eccn: Option<Eccn>,
 
+    /// URL or file URI of the sotware pack
+    pub url: String,
+
+    /// URL or e-main for users to get support for the Pack content
+    pub support_contact: Option<String>,
+
+    /// Path to the license document of the Pack
+    pub license: Option<String>,
+
+    // TODO: Add license set
+
+    // TODO: Add dominate
+
+    // TODO: Add requirements
+
+    // TODO: Add deprecated option create
+
+    // TODO: Add repository
+
+    // TODO: Add releases
+
+    // TODO: Add changelogs
+
+    // TODO: Add keywords
+
+    // TODO: Add environments
+
+    // TODO: Add genertators
+
     #[serde(borrow)]
+    /// The device family, the devices, and variants
     pub devices: Devices<'a>,
 
+    // TODO: Add boards
+
+    // TODO: Add parts
+
+    // TODO: Add taxonomy
+
+    // TODO: Add part-taxonomy
+
+    // TODO: Add APIs
+
+    // TODO: Add conditions
+
+    // TODO: Add examples
+
+    // TODO: Add csolution
+
+    // TODO: Add components
 }
 
 impl<'a> Package<'a> {

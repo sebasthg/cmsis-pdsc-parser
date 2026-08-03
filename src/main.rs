@@ -56,14 +56,18 @@ fn main() {
 
     debug!("{:#?}", pdsc);
 
-    // Validate the desrciption field
+
+    // Validate mics package fields
+    assert_eq!(pdsc.name, "PIC32CM-PL_DFP".to_string());
+    assert_eq!(pdsc.vendor, "Microchip".to_string());
     assert_eq!(pdsc.description, pdsc::Description {
         overview: Some("./OVERVIEW.md".to_string()),
         content: Some("Microchip PIC32CM-PL Series Device Support".to_string())
     });
-
-    // Validate that we don't have an ECCN field
     assert_eq!(pdsc.eccn, None);
+    assert_eq!(pdsc.url, "https://packs.download.microchip.com/".to_string());
+    assert_eq!(pdsc.support_contact, Some("https://www.microchip.com/en-us/support".to_string()));
+    assert_eq!(pdsc.license, Some("LICENSE.txt".to_string()));
 
     // Validate family info
     let family = pdsc.devices.family;
