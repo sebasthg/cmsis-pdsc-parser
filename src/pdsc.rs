@@ -10,6 +10,7 @@ use crate::debug_access::{self, Statement};
 use crate::requirements::Requirements;
 use crate::generators::Generators;
 use crate::boards::Boards;
+use crate::parts::Parts;
 
 #[derive(Debug, PartialEq, Deserialize)]
 /// Represents [PDSC Package](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_package_pg.html)
@@ -69,11 +70,12 @@ pub struct Package<'a> {
     /// Development boards described in this pack
     pub boards: Option<Boards>,
 
+    /// Hardware parts described in this pack
+    pub parts: Option<Parts>,
+
     #[serde(borrow)]
     /// The device family, the devices, and variants
     pub devices: Devices<'a>,
-
-    // TODO: Add parts
 
     // TODO: Add taxonomy
 

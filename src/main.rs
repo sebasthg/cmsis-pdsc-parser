@@ -11,6 +11,7 @@ mod debug_access;
 mod requirements;
 mod generators;
 mod boards;
+mod parts;
 
 
 const EXPECTED_DEBUGVARS: [(&str, u64); 26] = [
