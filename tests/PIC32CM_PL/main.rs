@@ -1,26 +1,10 @@
 use std::io::Read;
 
-use log::{debug, info};
+use log::info;
 
-use crate::{pdsc::{License, LicenseSet}, requirements::{Package, PackagesList}};
+use cmsis_pdsc_parser::{Package, pdsc::{License, LicenseSet, self}, requirements::{self, PackagesList}};
 
 const PDSC_PATH: &str = "Microchip.PIC32CM-PL_DFP.pdsc";
-
-mod pdsc;
-mod family;
-mod debug_access;
-mod requirements;
-mod generators;
-mod boards;
-mod parts;
-mod taxonomy;
-mod part_taxonomy;
-mod apis;
-mod components;
-mod conditions;
-mod csolution;
-mod examples;
-
 
 const EXPECTED_DEBUGVARS: [(&str, u64); 26] = [
     ("AIRCR_Addr", 0xE000ED0C),
@@ -103,10 +87,9 @@ fn main() {
     f.read_to_string(&mut pdsc_content).unwrap();
 
     let document = roxmltree::Document::parse(&pdsc_content).unwrap();
-    let pdsc = pdsc::Package::new(&document);
+    let pdsc = Package::new(&document);
 
-    debug!("{:#?}", pdsc);
-
+    info!("{:#?}", pdsc);
 
     // Validate mics package fields
     assert_eq!(pdsc.name, "PIC32CM-PL_DFP".to_string());
@@ -142,7 +125,7 @@ fn main() {
     // Validate the requirements
     let requirements = pdsc.requirements.unwrap();
     assert_eq!(requirements.packages, Some(PackagesList {
-        packages: vec![Package {
+        packages: vec![requirements::Package {
             name: "CMSIS".to_string(),
             vendor: "ARM".to_string(),
             version: None

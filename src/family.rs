@@ -1,9 +1,9 @@
 //! Contains the types required to represent a [PDSC Family](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html) element
 
 use std::{collections::HashMap, fmt::Debug};
-use roxmltree::{Document, Node};
-use serde::{Deserialize, Serialize, de::value};
-use log::{debug, error, trace, warn};
+use roxmltree::Node;
+use serde::{Deserialize, Serialize};
+use log::{error, trace, warn};
 use serde_roxmltree::RawNode;
 use crate::debug_access::{self, Statement};
 

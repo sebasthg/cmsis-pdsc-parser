@@ -16,8 +16,9 @@ cargo add roxmltree
 
 Minimal example:
 
-```Rust
+```rust
 use cmsis_pdsc_parser;
+use roxmltree;
 use std::io::read;
 
 const PDSC_PATH: &str = "Microchip.PIC32CM-PL_DFP.pdsc";

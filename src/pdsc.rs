@@ -1,12 +1,9 @@
 //! Contains types representing debug sequences
 
-use std::{collections::HashMap, fmt::Debug};
-use roxmltree::{Document, Node};
-use serde::{Deserialize, Serialize, de::value};
-use log::{debug, error, trace, warn};
-use serde_roxmltree::RawNode;
+use std::fmt::Debug;
+use roxmltree::Document;
+use serde::{Deserialize, Serialize};
 
-use crate::debug_access::{self, Statement};
 use crate::requirements::Requirements;
 use crate::generators::Generators;
 use crate::boards::Boards;
