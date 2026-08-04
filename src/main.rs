@@ -15,6 +15,7 @@ mod parts;
 mod taxonomy;
 mod part_taxonomy;
 mod apis;
+mod conditions;
 
 
 const EXPECTED_DEBUGVARS: [(&str, u64); 26] = [

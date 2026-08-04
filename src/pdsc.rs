@@ -14,6 +14,7 @@ use crate::parts::Parts;
 use crate::taxonomy::Taxonomy;
 use crate::part_taxonomy::PartTaxonomy;
 use crate::apis::Apis;
+use crate::conditions::Conditions;
 
 #[derive(Debug, PartialEq, Deserialize)]
 /// Represents [PDSC Package](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_package_pg.html)
@@ -90,7 +91,8 @@ pub struct Package<'a> {
     /// The device family, the devices, and variants
     pub devices: Devices<'a>,
 
-    // TODO: Add conditions
+    /// Conditions defined for use throughout this pack
+    pub conditions: Option<Conditions>,
 
     // TODO: Add examples
 
