@@ -133,8 +133,10 @@ impl<'a> Package<'a> {
         let mut package: Package = serde_roxmltree::from_doc(&document).unwrap();
 
         // Parse the "wild" string conents into structured data
-        package.devices.family.debugvars.parse_debugvars();
-        package.devices.family.sequences.parse_sequences();
+        for family in &mut package.devices.families {
+            family.debugvars.parse_debugvars();
+            family.sequences.parse_sequences();
+        }
 
         // Return the data
         package
@@ -288,11 +290,13 @@ pub struct Environment {
     // TODO: Handle the `anyAttribute` children
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
 /// Represents [PDSC Devices](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_devices_pg.html)
+#[derive(Debug, PartialEq, Deserialize)]
 pub struct Devices<'a> {
+    /// Device family definitions (1..*)
+    #[serde(rename = "family", default)]
     #[serde(borrow)]
-    pub family: Family<'a>
+    pub families: Vec<Family<'a>>
 }
 
 #[cfg(test)]
@@ -302,7 +306,7 @@ mod tests {
 use roxmltree::Document;
 use serde_roxmltree::RawNode;
 
-use crate::{debug_access::{Assignment, DebugFunction, Expression, Statement::{self}}, pdsc::{Changelog, Changelogs, Eccn, License, LicenseSet, Release, Releases, Repository}};
+use crate::{debug_access::{Assignment, DebugFunction, Expression, Statement::{self}}, pdsc::{Changelog, Changelogs, Devices, Eccn, License, LicenseSet, Release, Releases, Repository}};
     #[test]
     fn parse_eccn() {
         let xml_str =
@@ -483,6 +487,27 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
                 ..default::Default::default()
             },
         ]});
+    }
+
+    #[test]
+    fn parse_devices_multiple_families() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<devices>
+    <family Dfamily="FamilyA" Dvendor="ARM:82">
+        <debugvars configfile="a.dbgconf" version="1.0.0"></debugvars>
+        <sequences/>
+    </family>
+    <family Dfamily="FamilyB" Dvendor="ARM:82">
+        <debugvars configfile="b.dbgconf" version="2.0.0"></debugvars>
+        <sequences/>
+    </family>
+</devices>"#;
+        // Devices borrows from the Document so the document must outlive the parsed value
+        let document = roxmltree::Document::parse(xml_str).unwrap();
+        let devices: Devices = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(devices.families.len(), 2);
+        assert_eq!(devices.families[0].device_family, "FamilyA");
+        assert_eq!(devices.families[1].device_family, "FamilyB");
     }
 
     #[test]

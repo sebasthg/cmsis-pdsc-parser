@@ -191,7 +191,7 @@ pub struct Sequences<'a> {
     /// These are stored as [RawNode] due to [serde_roxmltree] not supporting decoding elements as
     /// a vector of enums and we neet do be able to preresent both [control](SequenceElement::Control)
     /// and [block](SequenceElement::Block) elements with their order perserved.
-    #[serde(rename = "sequence")]
+    #[serde(rename = "sequence", default)]
     #[serde(borrow)]
     raw_nodes: Vec<RawNode<'a>>,
 
