@@ -48,8 +48,8 @@ pub struct Board {
     #[serde(rename = "orderForm")]
     pub order_form: Option<String>,
 
-    /// Brief board description (max 256 characters)
-    pub description: String,
+    /// Brief board description (max 256 characters); optional per spec (0..1)
+    pub description: Option<String>,
 
     /// Board features and capabilities (1..*)
     #[serde(rename = "feature", default)]
@@ -90,13 +90,14 @@ pub struct Board {
     #[serde(rename = "algorithm", default)]
     pub algorithms: Vec<Algorithm>,
 
-    // TODO: environment (0..*) — vendor-specific tool settings; requires complex child structure
+    /// IDE-specific tool environments for this board (0..*)
+    pub environments: Option<BoardEnvironments>,
 }
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 /// Represents a [PDSC board feature](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html#element_board_feature) element
 pub struct Feature {
-    /// Predefined board feature type (e.g. `LED`, `Button`, `XTAL`, `USB`, `Ethernet`)
+    /// Predefined board feature type (e.g. `LED`, `Button`, `XTAL`, `USB`, `Ethernet`); valid values: [BoardFeatureType](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html)
     #[serde(rename = "type")]
     pub feature_type: String,
 
@@ -117,7 +118,7 @@ pub struct MountedDevice {
     #[serde(rename = "deviceIndex")]
     pub device_index: Option<String>,
 
-    /// Device vendor (use `"NO_VENDOR:0"` if there is no MCU)
+    /// Device vendor (use `"NO_VENDOR:0"` if there is no MCU); valid values: [DeviceVendorEnum](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html)
     #[serde(rename = "Dvendor")]
     pub device_vendor: String,
 
@@ -133,7 +134,7 @@ pub struct CompatibleDevice {
     #[serde(rename = "deviceIndex")]
     pub device_index: Option<String>,
 
-    /// Device vendor (use `"NO_VENDOR:0"` for incompatible configurations)
+    /// Device vendor (use `"NO_VENDOR:0"` for incompatible configurations); valid values: [DeviceVendorEnum](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html)
     #[serde(rename = "Dvendor")]
     pub device_vendor: String,
 
@@ -310,11 +311,30 @@ pub struct Algorithm {
     pub style: Option<String>,
 }
 
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+/// Represents a [board environment](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html#element_board) entry
+pub struct BoardEnvironment {
+    /// IDE environment name (e.g. `uvision`, `iar`, `eclipse`)
+    pub name: String,
+
+    /// Processor name for multi-core boards; limits this environment entry to one core
+    #[serde(rename = "Pname")]
+    pub processor_name: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+/// Groups board environment entries for a [PDSC board](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html#element_board)
+pub struct BoardEnvironments {
+    /// Individual environment entries (0..*)
+    #[serde(rename = "environment", default)]
+    pub environments: Vec<BoardEnvironment>,
+}
+
 #[cfg(test)]
 mod tests {
     use crate::boards::{
-        Algorithm, Boards, Book, CompatibleDevice, Feature, Image, Memory,
-        MountedDevice, MountedPart, DebugProbe,
+        Algorithm, BoardEnvironment, Boards, Book,
+        CompatibleDevice, Feature, Image, Memory, MountedDevice, MountedPart, DebugProbe,
     };
 
     #[test]
@@ -340,7 +360,7 @@ mod tests {
         assert_eq!(board.vendor, "STMicroelectronics");
         assert_eq!(board.name, "NUCLEO-F401RE");
         assert_eq!(board.revision, Some("Rev.C".to_string()));
-        assert_eq!(board.description, "STM32 Nucleo-64 development board with STM32F401RE MCU");
+        assert_eq!(board.description, Some("STM32 Nucleo-64 development board with STM32F401RE MCU".to_string()));
         assert_eq!(board.features, vec![Feature {
             feature_type: "XTAL".to_string(),
             n: Some("8".to_string()),
@@ -416,7 +436,7 @@ mod tests {
         assert_eq!(board.name, "MyBoard");
         assert_eq!(board.revision, None);
         assert_eq!(board.uuid, None);
-        assert_eq!(board.description, "A minimal test board");
+        assert_eq!(board.description, Some("A minimal test board".to_string()));
         assert_eq!(board.features, vec![Feature {
             feature_type: "LED".to_string(),
             n: Some("2".to_string()),
@@ -474,5 +494,36 @@ mod tests {
         assert_eq!(board.compatible_devices, vec![]);
         assert_eq!(board.memories, vec![]);
         assert_eq!(board.algorithms, vec![]);
+    }
+
+    #[test]
+    fn parse_board_environments() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<boards>
+    <board vendor="Example" name="EnvBoard">
+        <description>Board with IDE environments</description>
+        <mountedDevice Dvendor="ARM:82" Dname="ARMCM4"/>
+        <environments>
+            <environment name="uvision"/>
+            <environment name="iar" Pname="Core0"/>
+        </environments>
+    </board>
+</boards>"#;
+
+        let boards: Boards = serde_roxmltree::from_str(xml_str).unwrap();
+        let board = &boards.boards[0];
+
+        assert_eq!(board.vendor, "Example");
+        assert_eq!(board.name, "EnvBoard");
+        let envs = board.environments.as_ref().expect("environments should be present");
+        assert_eq!(envs.environments.len(), 2);
+        assert_eq!(envs.environments[0], BoardEnvironment {
+            name: "uvision".to_string(),
+            processor_name: None,
+        });
+        assert_eq!(envs.environments[1], BoardEnvironment {
+            name: "iar".to_string(),
+            processor_name: Some("Core0".to_string()),
+        });
     }
 }
