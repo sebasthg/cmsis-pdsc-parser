@@ -16,6 +16,7 @@ mod taxonomy;
 mod part_taxonomy;
 mod apis;
 mod conditions;
+mod csolution;
 mod examples;
 
 

@@ -15,6 +15,7 @@ use crate::taxonomy::Taxonomy;
 use crate::part_taxonomy::PartTaxonomy;
 use crate::apis::Apis;
 use crate::conditions::Conditions;
+use crate::csolution::Csolution;
 use crate::examples::Examples;
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -98,7 +99,8 @@ pub struct Package<'a> {
     /// Example projects included in this pack
     pub examples: Option<Examples>,
 
-    // TODO: Add csolution
+    /// Software layers and project templates for csolution-based projects
+    pub csolution: Option<Csolution>,
 
     // TODO: Add components
 }
