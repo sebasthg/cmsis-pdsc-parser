@@ -2,6 +2,26 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Parse error for debug access XML elements.
+#[derive(Debug, PartialEq)]
+pub enum DebugAccessParseError {
+    /// A required attribute or structural element was absent.
+    MissingAttribute(String),
+    /// An unrecognised statement or function name was encountered.
+    UnknownStatement(String),
+}
+
+impl std::fmt::Display for DebugAccessParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::MissingAttribute(msg) => write!(f, "missing attribute: {msg}"),
+            Self::UnknownStatement(name) => write!(f, "unknown statement: {name}"),
+        }
+    }
+}
+
+impl std::error::Error for DebugAccessParseError {}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 /// Types representing the valid [PDSC Debug Access](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#block_DebugSyntaxRules)
 /// statements.
@@ -137,7 +157,7 @@ pub struct Conditional {
 }
 
 impl TryFrom<String> for Conditional {
-    type Error = String;
+    type Error = DebugAccessParseError;
 
     /// Performs the conversion between [String] and [Conditional]
     ///
@@ -152,7 +172,7 @@ impl TryFrom<String> for Conditional {
 }
 
 impl TryFrom<&str> for Conditional {
-    type Error = String; // TODO: Better errors
+    type Error = DebugAccessParseError;
 
     /// Performs the conversion between [&str] and [Conditional]
     ///
@@ -199,7 +219,9 @@ impl TryFrom<&str> for Conditional {
 
             Ok(Conditional { condition, true_value, false_value })
         } else {
-            Err("Walking string did not yield a valid value".to_string())
+            Err(DebugAccessParseError::MissingAttribute(
+                "conditional syntax: expected '(condition) ? truthy : falsy'".to_string()
+            ))
         }
     }
 }
@@ -298,7 +320,7 @@ pub enum DebugFunction {
 }
 
 impl TryFrom<(String, Vec<Expression>)> for DebugFunction {
-    type Error = String;
+    type Error = DebugAccessParseError;
 
     /// Parses a debug access function by name and argument list.
     ///
@@ -308,109 +330,109 @@ impl TryFrom<(String, Vec<Expression>)> for DebugFunction {
             // Memory — 1 arg (addr)
             "Read8"  => match <[Expression; 1]>::try_from(args) {
                 Ok([addr]) => Ok(DebugFunction::Read8  { addr }),
-                Err(v)     => Err(format!("Read8 expects 1 argument, got {}", v.len())),
+                Err(v)     => Err(DebugAccessParseError::MissingAttribute(format!("Read8 expects 1 argument, got {}", v.len()))),
             },
             "Read16" => match <[Expression; 1]>::try_from(args) {
                 Ok([addr]) => Ok(DebugFunction::Read16 { addr }),
-                Err(v)     => Err(format!("Read16 expects 1 argument, got {}", v.len())),
+                Err(v)     => Err(DebugAccessParseError::MissingAttribute(format!("Read16 expects 1 argument, got {}", v.len()))),
             },
             "Read32" => match <[Expression; 1]>::try_from(args) {
                 Ok([addr]) => Ok(DebugFunction::Read32 { addr }),
-                Err(v)     => Err(format!("Read32 expects 1 argument, got {}", v.len())),
+                Err(v)     => Err(DebugAccessParseError::MissingAttribute(format!("Read32 expects 1 argument, got {}", v.len()))),
             },
             "Read64" => match <[Expression; 1]>::try_from(args) {
                 Ok([addr]) => Ok(DebugFunction::Read64 { addr }),
-                Err(v)     => Err(format!("Read64 expects 1 argument, got {}", v.len())),
+                Err(v)     => Err(DebugAccessParseError::MissingAttribute(format!("Read64 expects 1 argument, got {}", v.len()))),
             },
             // Memory — 2 args (addr, val)
             "Write8"  => match <[Expression; 2]>::try_from(args) {
                 Ok([addr, val]) => Ok(DebugFunction::Write8  { addr, val }),
-                Err(v)          => Err(format!("Write8 expects 2 arguments, got {}", v.len())),
+                Err(v)          => Err(DebugAccessParseError::MissingAttribute(format!("Write8 expects 2 arguments, got {}", v.len()))),
             },
             "Write16" => match <[Expression; 2]>::try_from(args) {
                 Ok([addr, val]) => Ok(DebugFunction::Write16 { addr, val }),
-                Err(v)          => Err(format!("Write16 expects 2 arguments, got {}", v.len())),
+                Err(v)          => Err(DebugAccessParseError::MissingAttribute(format!("Write16 expects 2 arguments, got {}", v.len()))),
             },
             "Write32" => match <[Expression; 2]>::try_from(args) {
                 Ok([addr, val]) => Ok(DebugFunction::Write32 { addr, val }),
-                Err(v)          => Err(format!("Write32 expects 2 arguments, got {}", v.len())),
+                Err(v)          => Err(DebugAccessParseError::MissingAttribute(format!("Write32 expects 2 arguments, got {}", v.len()))),
             },
             "Write64" => match <[Expression; 2]>::try_from(args) {
                 Ok([addr, val]) => Ok(DebugFunction::Write64 { addr, val }),
-                Err(v)          => Err(format!("Write64 expects 2 arguments, got {}", v.len())),
+                Err(v)          => Err(DebugAccessParseError::MissingAttribute(format!("Write64 expects 2 arguments, got {}", v.len()))),
             },
             // Register — 1 arg (addr)
             "ReadAP" => match <[Expression; 1]>::try_from(args) {
                 Ok([addr]) => Ok(DebugFunction::ReadAP { addr }),
-                Err(v)     => Err(format!("ReadAP expects 1 argument, got {}", v.len())),
+                Err(v)     => Err(DebugAccessParseError::MissingAttribute(format!("ReadAP expects 1 argument, got {}", v.len()))),
             },
             "ReadDP" => match <[Expression; 1]>::try_from(args) {
                 Ok([addr]) => Ok(DebugFunction::ReadDP { addr }),
-                Err(v)     => Err(format!("ReadDP expects 1 argument, got {}", v.len())),
+                Err(v)     => Err(DebugAccessParseError::MissingAttribute(format!("ReadDP expects 1 argument, got {}", v.len()))),
             },
             "ReadAccessAP" => match <[Expression; 1]>::try_from(args) {
                 Ok([addr]) => Ok(DebugFunction::ReadAccessAP { addr }),
-                Err(v)     => Err(format!("ReadAccessAP expects 1 argument, got {}", v.len())),
+                Err(v)     => Err(DebugAccessParseError::MissingAttribute(format!("ReadAccessAP expects 1 argument, got {}", v.len()))),
             },
             // Register — 2 args (addr, val)
             "WriteAP" => match <[Expression; 2]>::try_from(args) {
                 Ok([addr, val]) => Ok(DebugFunction::WriteAP { addr, val }),
-                Err(v)          => Err(format!("WriteAP expects 2 arguments, got {}", v.len())),
+                Err(v)          => Err(DebugAccessParseError::MissingAttribute(format!("WriteAP expects 2 arguments, got {}", v.len()))),
             },
             "WriteDP" => match <[Expression; 2]>::try_from(args) {
                 Ok([addr, val]) => Ok(DebugFunction::WriteDP { addr, val }),
-                Err(v)          => Err(format!("WriteDP expects 2 arguments, got {}", v.len())),
+                Err(v)          => Err(DebugAccessParseError::MissingAttribute(format!("WriteDP expects 2 arguments, got {}", v.len()))),
             },
             "WriteAccessAP" => match <[Expression; 2]>::try_from(args) {
                 Ok([addr, val]) => Ok(DebugFunction::WriteAccessAP { addr, val }),
-                Err(v)          => Err(format!("WriteAccessAP expects 2 arguments, got {}", v.len())),
+                Err(v)          => Err(DebugAccessParseError::MissingAttribute(format!("WriteAccessAP expects 2 arguments, got {}", v.len()))),
             },
             // Debug port — 1 arg
             "DAP_Delay" => match <[Expression; 1]>::try_from(args) {
                 Ok([delay]) => Ok(DebugFunction::DapDelay { delay }),
-                Err(v)      => Err(format!("DAP_Delay expects 1 argument, got {}", v.len())),
+                Err(v)      => Err(DebugAccessParseError::MissingAttribute(format!("DAP_Delay expects 1 argument, got {}", v.len()))),
             },
             "DAP_WriteABORT" => match <[Expression; 1]>::try_from(args) {
                 Ok([value]) => Ok(DebugFunction::DapWriteAbort { value }),
-                Err(v)      => Err(format!("DAP_WriteABORT expects 1 argument, got {}", v.len())),
+                Err(v)      => Err(DebugAccessParseError::MissingAttribute(format!("DAP_WriteABORT expects 1 argument, got {}", v.len()))),
             },
             "DAP_SWJ_Clock" => match <[Expression; 1]>::try_from(args) {
                 Ok([val]) => Ok(DebugFunction::DapSwjClock { val }),
-                Err(v)    => Err(format!("DAP_SWJ_Clock expects 1 argument, got {}", v.len())),
+                Err(v)    => Err(DebugAccessParseError::MissingAttribute(format!("DAP_SWJ_Clock expects 1 argument, got {}", v.len()))),
             },
             // Debug port — 2 args
             "DAP_SWJ_Sequence" => match <[Expression; 2]>::try_from(args) {
                 Ok([cnt, val]) => Ok(DebugFunction::DapSwjSequence { cnt, val }),
-                Err(v)         => Err(format!("DAP_SWJ_Sequence expects 2 arguments, got {}", v.len())),
+                Err(v)         => Err(DebugAccessParseError::MissingAttribute(format!("DAP_SWJ_Sequence expects 2 arguments, got {}", v.len()))),
             },
             // Debug port — 3 args
             "DAP_SWJ_Pins" => match <[Expression; 3]>::try_from(args) {
                 Ok([pinout, pinselect, pinwait]) => Ok(DebugFunction::DapSwjPins { pinout, pinselect, pinwait }),
-                Err(v) => Err(format!("DAP_SWJ_Pins expects 3 arguments, got {}", v.len())),
+                Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("DAP_SWJ_Pins expects 3 arguments, got {}", v.len()))),
             },
             "DAP_JTAG_Sequence" => match <[Expression; 3]>::try_from(args) {
                 Ok([cnt, tms, tdi]) => Ok(DebugFunction::DapJtagSequence { cnt, tms, tdi }),
-                Err(v)              => Err(format!("DAP_JTAG_Sequence expects 3 arguments, got {}", v.len())),
+                Err(v)              => Err(DebugAccessParseError::MissingAttribute(format!("DAP_JTAG_Sequence expects 3 arguments, got {}", v.len()))),
             },
             // Sequence control — 1 arg
             "Sequence" => match <[Expression; 1]>::try_from(args) {
                 Ok([name]) => Ok(DebugFunction::Sequence { name }),
-                Err(v)     => Err(format!("Sequence expects 1 argument, got {}", v.len())),
+                Err(v)     => Err(DebugAccessParseError::MissingAttribute(format!("Sequence expects 1 argument, got {}", v.len()))),
             },
             // Sequence control — 2 args
             "QueryValue" => match <[Expression; 2]>::try_from(args) {
                 Ok([message, default]) => Ok(DebugFunction::QueryValue { message, default }),
-                Err(v)                 => Err(format!("QueryValue expects 2 arguments, got {}", v.len())),
+                Err(v)                 => Err(DebugAccessParseError::MissingAttribute(format!("QueryValue expects 2 arguments, got {}", v.len()))),
             },
             // Sequence control — 3 args
             "Query" => match <[Expression; 3]>::try_from(args) {
                 Ok([query_type, message, default]) => Ok(DebugFunction::Query { query_type, message, default }),
-                Err(v) => Err(format!("Query expects 3 arguments, got {}", v.len())),
+                Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("Query expects 3 arguments, got {}", v.len()))),
             },
             // Sequence control — variadic (2+ args)
             "Message" => {
                 if args.len() < 2 {
-                    return Err(format!("Message expects at least 2 arguments, got {}", args.len()));
+                    return Err(DebugAccessParseError::MissingAttribute(format!("Message expects at least 2 arguments, got {}", args.len())));
                 }
                 let mut it = args.into_iter();
                 let msg_type = it.next().unwrap();
@@ -420,65 +442,65 @@ impl TryFrom<(String, Vec<Expression>)> for DebugFunction {
             // Flash — 3 args
             "FlashLoadAlgorithm" => match <[Expression; 3]>::try_from(args) {
                 Ok([algo_path, ram_start, ram_size]) => Ok(DebugFunction::FlashLoadAlgorithm { algo_path, ram_start, ram_size }),
-                Err(v) => Err(format!("FlashLoadAlgorithm expects 3 arguments, got {}", v.len())),
+                Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("FlashLoadAlgorithm expects 3 arguments, got {}", v.len()))),
             },
             // Flash — 4 args
             "FlashWriteBuffer" => match <[Expression; 4]>::try_from(args) {
                 Ok([addr, offs, len, mode]) => Ok(DebugFunction::FlashWriteBuffer { addr, offs, len, mode }),
-                Err(v) => Err(format!("FlashWriteBuffer expects 4 arguments, got {}", v.len())),
+                Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("FlashWriteBuffer expects 4 arguments, got {}", v.len()))),
             },
             // Buffer — 1 arg
             "BufferSize" => match <[Expression; 1]>::try_from(args) {
                 Ok([buff_id]) => Ok(DebugFunction::BufferSize { buff_id }),
-                Err(v)        => Err(format!("BufferSize expects 1 argument, got {}", v.len())),
+                Err(v)        => Err(DebugAccessParseError::MissingAttribute(format!("BufferSize expects 1 argument, got {}", v.len()))),
             },
             // Buffer — 3 args
             "BufferGet" => match <[Expression; 3]>::try_from(args) {
                 Ok([buff_id, buff_offset, size]) => Ok(DebugFunction::BufferGet { buff_id, buff_offset, size }),
-                Err(v) => Err(format!("BufferGet expects 3 arguments, got {}", v.len())),
+                Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("BufferGet expects 3 arguments, got {}", v.len()))),
             },
             // Buffer — 5 args
             "BufferSet" => match <[Expression; 5]>::try_from(args) {
                 Ok([buff_id, buff_offset, count, size, value]) => Ok(DebugFunction::BufferSet { buff_id, buff_offset, count, size, value }),
-                Err(v) => Err(format!("BufferSet expects 5 arguments, got {}", v.len())),
+                Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("BufferSet expects 5 arguments, got {}", v.len()))),
             },
             "BufferRead" => match <[Expression; 5]>::try_from(args) {
                 Ok([buff_id, buff_offset, addr, length, mode]) => Ok(DebugFunction::BufferRead { buff_id, buff_offset, addr, length, mode }),
-                Err(v) => Err(format!("BufferRead expects 5 arguments, got {}", v.len())),
+                Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("BufferRead expects 5 arguments, got {}", v.len()))),
             },
             "BufferWrite" => match <[Expression; 5]>::try_from(args) {
                 Ok([buff_id, buff_offset, addr, length, mode]) => Ok(DebugFunction::BufferWrite { buff_id, buff_offset, addr, length, mode }),
-                Err(v) => Err(format!("BufferWrite expects 5 arguments, got {}", v.len())),
+                Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("BufferWrite expects 5 arguments, got {}", v.len()))),
             },
             // External — 1 arg
             "LoadDebugInfo" => match <[Expression; 1]>::try_from(args) {
                 Ok([file]) => Ok(DebugFunction::LoadDebugInfo { file }),
-                Err(v)     => Err(format!("LoadDebugInfo expects 1 argument, got {}", v.len())),
+                Err(v)     => Err(DebugAccessParseError::MissingAttribute(format!("LoadDebugInfo expects 1 argument, got {}", v.len()))),
             },
             // External — 2 args
             "FilePathExists" => match <[Expression; 2]>::try_from(args) {
                 Ok([path, timeout]) => Ok(DebugFunction::FilePathExists { path, timeout }),
-                Err(v)              => Err(format!("FilePathExists expects 2 arguments, got {}", v.len())),
+                Err(v)              => Err(DebugAccessParseError::MissingAttribute(format!("FilePathExists expects 2 arguments, got {}", v.len()))),
             },
             // External — 4 args
             "RunApplication" => match <[Expression; 4]>::try_from(args) {
                 Ok([app_path, arguments, work_directory, timeout]) => Ok(DebugFunction::RunApplication { app_path, arguments, work_directory, timeout }),
-                Err(v) => Err(format!("RunApplication expects 4 arguments, got {}", v.len())),
+                Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("RunApplication expects 4 arguments, got {}", v.len()))),
             },
             "RunPythonScript" => match <[Expression; 4]>::try_from(args) {
                 Ok([script_path, arguments, work_directory, timeout]) => Ok(DebugFunction::RunPythonScript { script_path, arguments, work_directory, timeout }),
-                Err(v) => Err(format!("RunPythonScript expects 4 arguments, got {}", v.len())),
+                Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("RunPythonScript expects 4 arguments, got {}", v.len()))),
             },
             // External — 6 args
             "BufferStreamIn" => match <[Expression; 6]>::try_from(args) {
                 Ok([buff_id, buff_offset, length, path, mode, timeout]) => Ok(DebugFunction::BufferStreamIn { buff_id, buff_offset, length, path, mode, timeout }),
-                Err(v) => Err(format!("BufferStreamIn expects 6 arguments, got {}", v.len())),
+                Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("BufferStreamIn expects 6 arguments, got {}", v.len()))),
             },
             "BufferStreamOut" => match <[Expression; 6]>::try_from(args) {
                 Ok([buff_id, buff_offset, length, dest_path, dest_mode, timeout]) => Ok(DebugFunction::BufferStreamOut { buff_id, buff_offset, length, dest_path, dest_mode, timeout }),
-                Err(v) => Err(format!("BufferStreamOut expects 6 arguments, got {}", v.len())),
+                Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("BufferStreamOut expects 6 arguments, got {}", v.len()))),
             },
-            _ => Err(format!("Unknown debug access function: {}", name)),
+            _ => Err(DebugAccessParseError::UnknownStatement(name)),
         }
     }
 }
@@ -542,7 +564,7 @@ fn split_args(args_str: &str) -> Vec<&str> {
 
 #[cfg(test)]
 mod tests {
-    use crate::debug_access::{Assignment, Conditional, DebugFunction, Expression, Statement};
+    use crate::debug_access::{Assignment, Conditional, DebugAccessParseError, DebugFunction, Expression, Statement};
 
     #[test]
     fn parse_comment() {
@@ -727,8 +749,21 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Unknown debug access function: GetBase")]
+    #[should_panic(expected = "unknown statement: GetBase")]
     fn unknown_function_panics() {
         let _: Expression = "GetBase()".into();
+    }
+
+    #[test]
+    fn conditional_missing_syntax() {
+        let result = Conditional::try_from("no parentheses here");
+        assert!(matches!(result, Err(DebugAccessParseError::MissingAttribute(_))));
+    }
+
+    #[test]
+    fn unknown_function_returns_unknown_statement() {
+        use crate::debug_access::Expression;
+        let result = DebugFunction::try_from(("GetBase".to_string(), vec![]));
+        assert_eq!(result.unwrap_err(), DebugAccessParseError::UnknownStatement("GetBase".to_string()));
     }
 }
