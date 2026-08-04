@@ -123,6 +123,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f079e83a288787bcd14a6aea84cee5c87a67c5a3e660c30f557a3d24761b3527"
 
 [[package]]
+name = "cmsis_pdsc_parser"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "log",
+ "roxmltree",
+ "serde",
+ "serde-roxmltree",
+]
+
+[[package]]
 name = "colorchoice"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -269,17 +280,6 @@ name = "once_cell_polyfill"
 version = "1.70.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "384b8ab6d37215f3c5301a95a4accb5d64aa607f1fcb26a11b5303878451b4fe"
-
-[[package]]
-name = "pdsc_parser"
-version = "0.1.0"
-dependencies = [
- "env_logger",
- "log",
- "roxmltree",
- "serde",
- "serde-roxmltree",
-]
 
 [[package]]
 name = "portable-atomic"

@@ -1,7 +1,13 @@
 [package]
-name = "pdsc_parser"
+name = "cmsis_pdsc_parser"
+description = "A CMSIS-Pack PDSC file parser for Rust"
+keywords = ["CMSIS", "CMSIS-Pack", "PDSC", "parser"]
+categories = ["api-bindings", "embedded", "parser-implementations"]
 version = "0.1.0"
 edition = "2024"
+readme = "README.md"
+repository = "https://github.com/sebasthg/cmsis-pdsc-parser"
+license = "MIT"
 
 [dependencies]
 env_logger = "0.11.11"
