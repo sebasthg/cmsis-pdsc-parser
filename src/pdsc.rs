@@ -31,6 +31,25 @@ pub struct Package<'a> {
     /// Name of the software pack supplier/vendor
     pub vendor: String,
 
+    /// PDSC schema version; valid values defined by [PDSC schema versioning](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
+    pub schema_version: Option<String>,
+
+    /// Restricts pack to a specific core; valid values: [DcoreEnum](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
+    #[serde(rename = "Dcore")]
+    pub d_core: Option<String>,
+
+    /// Restricts pack to a specific silicon vendor; valid values: [DeviceVendorEnum](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
+    #[serde(rename = "Dvendor")]
+    pub d_vendor: Option<String>,
+
+    /// Restricts pack to a specific device name; wildcards allowed
+    #[serde(rename = "Dname")]
+    pub d_name: Option<String>,
+
+    /// Restricts pack to a specific toolchain; valid values: [CompilerEnumType](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
+    #[serde(rename = "Tcompiler")]
+    pub t_compiler: Option<String>,
+
     /// Brief description of the sofware pack
     pub description: Description,
 
@@ -55,7 +74,7 @@ pub struct Package<'a> {
     /// Specifies other CMSIS-Packs, programming languages, and compilers required by pack components
     pub requirements: Option<Requirements>,
 
-    // TODO: Add deprecated option `create`
+    // The deprecated `create` element is intentionally not modelled.
 
     /// HTTPS URL of a public repository tat the pack originates from
     pub repository: Option<Repository>,
@@ -209,11 +228,17 @@ pub struct Releases {
 #[derive(Debug, PartialEq, Deserialize, Serialize, Default)]
 /// Represents the [PDSC Releaes](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_releases.html#element_release) element
 pub struct Release {
+    /// Release version string
     pub version: String,
+    /// Release date in xs:date format (e.g. `2023-01-15`)
     pub date: Option<String>,
+    /// VCS tag for this release
     pub tag: Option<String>,
+    /// URL of the release archive
     pub url: Option<String>,
+    /// Date this release was deprecated, in xs:date format (e.g. `2023-01-15`); tools should warn users when the pack is installed
     pub deprecated: Option<String>,
+    /// Pack name (`Vendor.Name`) that replaces this deprecated release
     pub replacement: Option<String>,
     #[serde(rename = "#content")]
     pub content: String
@@ -234,8 +259,8 @@ pub struct Changelog {
     /// A path relative to the PDSC fil and the filename of the changelog file
     pub name: String,
 
-    /// If set to true the changelog is associated with all apis and components not explicitly referncing another changlog
-    pub default: Option<String>
+    /// If `true` this changelog is associated with all APIs and components that do not explicitly reference another changelog; xs:boolean (`"true"` / `"false"`)
+    pub default: Option<bool>
 }
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
@@ -277,7 +302,7 @@ mod tests {
 use roxmltree::Document;
 use serde_roxmltree::RawNode;
 
-use crate::{debug_access::{Assignment, DebugFunction, Expression, Statement::{self}}, pdsc::{Eccn, License, LicenseSet, Release, Releases, Repository}}; 
+use crate::{debug_access::{Assignment, DebugFunction, Expression, Statement::{self}}, pdsc::{Changelog, Changelogs, Eccn, License, LicenseSet, Release, Releases, Repository}};
     #[test]
     fn parse_eccn() {
         let xml_str =
@@ -458,5 +483,22 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
                 ..default::Default::default()
             },
         ]});
+    }
+
+    #[test]
+    fn parse_changelog_default_bool() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<changelogs>
+    <changelog id="all" name="CHANGELOG.md" default="true"/>
+    <changelog id="other" name="OTHER.md"/>
+</changelogs>"#;
+
+        let changelogs: Changelogs = serde_roxmltree::from_str(xml_str).unwrap();
+        assert_eq!(changelogs.changelog.len(), 2);
+        assert_eq!(changelogs.changelog[0].id, "all");
+        assert_eq!(changelogs.changelog[0].name, "CHANGELOG.md");
+        assert_eq!(changelogs.changelog[0].default, Some(true));
+        assert_eq!(changelogs.changelog[1].id, "other");
+        assert_eq!(changelogs.changelog[1].default, None);
     }
 }
