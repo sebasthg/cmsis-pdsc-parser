@@ -534,10 +534,10 @@ pub struct Feature {
     /// Feature type identifier
     #[serde(rename = "type")]
     pub feature_type: String,
-    /// Primary numeric parameter (e.g. channel count)
-    pub n: Option<f64>,
-    /// Secondary numeric parameter
-    pub m: Option<f64>,
+    /// Primary parameter — numeric for most types, label string for `Application`
+    pub n: Option<String>,
+    /// Secondary parameter — numeric for most types, label string for `Application`
+    pub m: Option<String>,
     /// Human-readable feature name
     pub name: Option<String>,
     /// Processor instance name this feature applies to
@@ -1242,9 +1242,9 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
         let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
         assert_eq!(family.feature.len(), 2);
         assert_eq!(family.feature[0].feature_type, "UART");
-        assert_eq!(family.feature[0].n, Some(3.0));
+        assert_eq!(family.feature[0].n, Some("3".to_string()));
         assert_eq!(family.feature[0].name, Some("Universal Asynchronous Receiver/Transmitter".to_string()));
-        assert_eq!(family.feature[1].m, Some(12.0));
+        assert_eq!(family.feature[1].m, Some("12".to_string()));
     }
 
     #[test]
