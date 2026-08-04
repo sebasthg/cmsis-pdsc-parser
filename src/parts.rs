@@ -55,7 +55,8 @@ pub struct Part {
     /// Part images (top/bottom/perspective)
     pub image: Option<Image>,
 
-    // TODO: environment (0..*) — vendor-specific tool settings; requires complex child structure
+    /// IDE-specific tool environments for this part (0..*)
+    pub environments: Option<PartEnvironments>,
 }
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
@@ -112,9 +113,28 @@ pub struct Image {
     pub public: Option<bool>,
 }
 
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+/// Represents a [part environment](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_parts_pg.html#element_part) entry
+pub struct PartEnvironment {
+    /// IDE environment name (e.g. `uvision`, `iar`, `eclipse`)
+    pub name: String,
+
+    /// Processor name for multi-core parts; limits this environment entry to one core
+    #[serde(rename = "Pname")]
+    pub processor_name: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+/// Groups part environment entries for a [PDSC part](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_parts_pg.html#element_part)
+pub struct PartEnvironments {
+    /// Individual environment entries (0..*)
+    #[serde(rename = "environment", default)]
+    pub environments: Vec<PartEnvironment>,
+}
+
 #[cfg(test)]
 mod tests {
-    use crate::parts::{Book, Feature, Image, Parts};
+    use crate::parts::{Book, Feature, Image, PartEnvironment, Parts};
 
     #[test]
     fn parse_parts() {
@@ -223,5 +243,34 @@ mod tests {
         assert_eq!(parts.parts[1].books.len(), 1);
         assert_eq!(parts.parts[1].books[0].name, "docs/cm0.pdf");
         assert_eq!(parts.parts[1].books[0].title, "Cortex-M0 Technical Reference Manual");
+    }
+
+    #[test]
+    fn parse_part_environments() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<parts>
+    <part Hname="MY-CHIP-001">
+        <environments>
+            <environment name="uvision"/>
+            <environment name="iar" Pname="Core0"/>
+        </environments>
+    </part>
+</parts>"#;
+
+        let parts: Parts = serde_roxmltree::from_str(xml_str).unwrap();
+        assert_eq!(parts.parts.len(), 1);
+
+        let part = &parts.parts[0];
+        assert_eq!(part.name, "MY-CHIP-001");
+        let envs = part.environments.as_ref().expect("environments should be present");
+        assert_eq!(envs.environments.len(), 2);
+        assert_eq!(envs.environments[0], PartEnvironment {
+            name: "uvision".to_string(),
+            processor_name: None,
+        });
+        assert_eq!(envs.environments[1], PartEnvironment {
+            name: "iar".to_string(),
+            processor_name: Some("Core0".to_string()),
+        });
     }
 }
