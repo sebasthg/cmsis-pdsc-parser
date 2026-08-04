@@ -14,6 +14,7 @@ use crate::parts::Parts;
 use crate::taxonomy::Taxonomy;
 use crate::part_taxonomy::PartTaxonomy;
 use crate::apis::Apis;
+use crate::components::Components;
 use crate::conditions::Conditions;
 use crate::csolution::Csolution;
 use crate::examples::Examples;
@@ -102,7 +103,8 @@ pub struct Package<'a> {
     /// Software layers and project templates for csolution-based projects
     pub csolution: Option<Csolution>,
 
-    // TODO: Add components
+    /// Components published by this pack
+    pub components: Option<Components>,
 }
 
 impl<'a> Package<'a> {

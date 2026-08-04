@@ -15,6 +15,7 @@ mod parts;
 mod taxonomy;
 mod part_taxonomy;
 mod apis;
+mod components;
 mod conditions;
 mod csolution;
 mod examples;
