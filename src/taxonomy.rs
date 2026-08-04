@@ -39,6 +39,105 @@ pub struct TaxonomyDescription {
     pub content: String,
 }
 
+#[derive(Debug, PartialEq, Clone, Copy)]
+/// Predefined component class names per
+/// [CclassType](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_taxonomy.html#CclassType)
+pub enum CclassType {
+    Audio,
+    BoardSupport,
+    BoardPart,
+    Compiler,
+    /// "CMSIS"
+    Cmsis,
+    /// "CMSIS Driver"
+    CmsisDriver,
+    Device,
+    DataExchange,
+    ExtensionBoard,
+    FileSystem,
+    Graphics,
+    /// "IoT Client"
+    IotClient,
+    /// "IoT Utility"
+    IotUtility,
+    Network,
+    /// "RTOS"
+    Rtos,
+    Security,
+    /// "USB"
+    Usb,
+    Utility,
+}
+
+impl TryFrom<&str> for CclassType {
+    type Error = ();
+    fn try_from(s: &str) -> Result<Self, Self::Error> {
+        match s {
+            "Audio" => Ok(Self::Audio),
+            "Board Support" => Ok(Self::BoardSupport),
+            "Board Part" => Ok(Self::BoardPart),
+            "Compiler" => Ok(Self::Compiler),
+            "CMSIS" => Ok(Self::Cmsis),
+            "CMSIS Driver" => Ok(Self::CmsisDriver),
+            "Device" => Ok(Self::Device),
+            "Data Exchange" => Ok(Self::DataExchange),
+            "Extension Board" => Ok(Self::ExtensionBoard),
+            "File System" => Ok(Self::FileSystem),
+            "Graphics" => Ok(Self::Graphics),
+            "IoT Client" => Ok(Self::IotClient),
+            "IoT Utility" => Ok(Self::IotUtility),
+            "Network" => Ok(Self::Network),
+            "RTOS" => Ok(Self::Rtos),
+            "Security" => Ok(Self::Security),
+            "USB" => Ok(Self::Usb),
+            "Utility" => Ok(Self::Utility),
+            _ => Err(()),
+        }
+    }
+}
+
+impl TryFrom<String> for CclassType {
+    type Error = ();
+    fn try_from(s: String) -> Result<Self, Self::Error> { Self::try_from(s.as_str()) }
+}
+
+#[derive(Debug, PartialEq, Clone, Copy)]
+/// Predefined component group names per
+/// [CgroupType](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_taxonomy.html#CgroupType)
+pub enum CgroupType {
+    /// "CORE"
+    Core,
+    /// "DSP"
+    Dsp,
+    /// "NN Lib"
+    NnLib,
+    /// "RTOS"
+    Rtos,
+    /// "RTOS2"
+    Rtos2,
+    Startup,
+}
+
+impl TryFrom<&str> for CgroupType {
+    type Error = ();
+    fn try_from(s: &str) -> Result<Self, Self::Error> {
+        match s {
+            "CORE" => Ok(Self::Core),
+            "DSP" => Ok(Self::Dsp),
+            "NN Lib" => Ok(Self::NnLib),
+            "RTOS" => Ok(Self::Rtos),
+            "RTOS2" => Ok(Self::Rtos2),
+            "Startup" => Ok(Self::Startup),
+            _ => Err(()),
+        }
+    }
+}
+
+impl TryFrom<String> for CgroupType {
+    type Error = ();
+    fn try_from(s: String) -> Result<Self, Self::Error> { Self::try_from(s.as_str()) }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::taxonomy::{Taxonomy, TaxonomyDescription};
@@ -105,5 +204,37 @@ mod tests {
         assert_eq!(desc.class, "Compiler");
         assert_eq!(desc.group, None);
         assert_eq!(desc.content, "ARM Compiler software components");
+    }
+
+    #[test]
+    fn cclass_type_try_from() {
+        use crate::taxonomy::CclassType;
+
+        assert_eq!(CclassType::try_from("Audio"), Ok(CclassType::Audio));
+        assert_eq!(CclassType::try_from("CMSIS"), Ok(CclassType::Cmsis));
+        assert_eq!(CclassType::try_from("CMSIS Driver"), Ok(CclassType::CmsisDriver));
+        assert_eq!(CclassType::try_from("RTOS"), Ok(CclassType::Rtos));
+        assert_eq!(CclassType::try_from("USB"), Ok(CclassType::Usb));
+        assert_eq!(CclassType::try_from("IoT Client"), Ok(CclassType::IotClient));
+        assert_eq!(CclassType::try_from("Unknown Class"), Err(()));
+
+        let s = "Board Support".to_string();
+        assert_eq!(CclassType::try_from(s), Ok(CclassType::BoardSupport));
+    }
+
+    #[test]
+    fn cgroup_type_try_from() {
+        use crate::taxonomy::CgroupType;
+
+        assert_eq!(CgroupType::try_from("CORE"), Ok(CgroupType::Core));
+        assert_eq!(CgroupType::try_from("DSP"), Ok(CgroupType::Dsp));
+        assert_eq!(CgroupType::try_from("NN Lib"), Ok(CgroupType::NnLib));
+        assert_eq!(CgroupType::try_from("RTOS"), Ok(CgroupType::Rtos));
+        assert_eq!(CgroupType::try_from("RTOS2"), Ok(CgroupType::Rtos2));
+        assert_eq!(CgroupType::try_from("Startup"), Ok(CgroupType::Startup));
+        assert_eq!(CgroupType::try_from("Unknown Group"), Err(()));
+
+        let s = "NN Lib".to_string();
+        assert_eq!(CgroupType::try_from(s), Ok(CgroupType::NnLib));
     }
 }
