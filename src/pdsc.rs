@@ -15,6 +15,7 @@ use crate::taxonomy::Taxonomy;
 use crate::part_taxonomy::PartTaxonomy;
 use crate::apis::Apis;
 use crate::conditions::Conditions;
+use crate::examples::Examples;
 
 #[derive(Debug, PartialEq, Deserialize)]
 /// Represents [PDSC Package](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_package_pg.html)
@@ -94,7 +95,8 @@ pub struct Package<'a> {
     /// Conditions defined for use throughout this pack
     pub conditions: Option<Conditions>,
 
-    // TODO: Add examples
+    /// Example projects included in this pack
+    pub examples: Option<Examples>,
 
     // TODO: Add csolution
 
