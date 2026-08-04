@@ -7,6 +7,32 @@ use log::{debug, error, trace, warn};
 use serde_roxmltree::RawNode;
 use crate::debug_access::{self, Statement};
 
+/// Parse error for family XML elements.
+#[derive(Debug, PartialEq)]
+pub enum FamilyParseError {
+    /// A required XML attribute was absent.
+    MissingAttribute(String),
+    /// An unrecognised element type was encountered.
+    UnknownElementType(String),
+    /// A debugvar declaration could not be parsed.
+    MalformedDebugvar(String),
+    /// Hit an unimplemented content-parse branch.
+    UnimplementedContent,
+}
+
+impl std::fmt::Display for FamilyParseError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::MissingAttribute(attr) => write!(f, "missing attribute: {attr}"),
+            Self::UnknownElementType(tag) => write!(f, "unknown element type: {tag}"),
+            Self::MalformedDebugvar(msg) => write!(f, "malformed debugvar: {msg}"),
+            Self::UnimplementedContent => write!(f, "unimplemented content-parse branch"),
+        }
+    }
+}
+
+impl std::error::Error for FamilyParseError {}
+
 #[derive(Debug, PartialEq, Deserialize)]
 /// Represents [PDSC Family](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html)
 pub struct Family<'a> {
@@ -15,8 +41,8 @@ pub struct Family<'a> {
     pub device_family: String,
 
     #[serde(rename = "Dvendor")]
-    /// The device manufacturer/vendor
-    pub vendor: String, // TODO: Make enum
+    /// The device manufacturer/vendor; valid values: [DeviceVendorEnum](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
+    pub vendor: String,
 
     /// Global debug variables
     pub debugvars: Debugvars,
@@ -72,8 +98,11 @@ impl Debugvars {
             }
     }
 
-    /// Parses a single variable declaration entry
-    fn parse_single_debugvar(line: &str) -> Option<(String, u64)> { // TODO: Make Result
+    /// Parses a single variable declaration entry.
+    ///
+    /// Returns `Ok((name, value))` for a valid `__var name = value;` declaration,
+    /// or `Err(FamilyParseError::MalformedDebugvar(...))` for any malformed input.
+    pub(crate) fn parse_single_debugvar(line: &str) -> Result<(String, u64), FamilyParseError> {
         trace!("Parsing debugvar line: {}", line);
 
         // Remove comments
@@ -84,29 +113,37 @@ impl Debugvars {
             line.trim()
         };
 
+        if declaration.is_empty() {
+            return Err(FamilyParseError::MalformedDebugvar("empty declaration".to_string()));
+        }
+
         let stripped_declaration = match declaration.strip_prefix("__var ") {
             Some(val) => val,
             None => {
-                if declaration.len() != 0 {
-                    warn!("Variable in debugvars does not start with \"__var \": {:?}", declaration);
-                };
-                return None;
+                warn!("Variable in debugvars does not start with \"__var \": {:?}", declaration);
+                return Err(FamilyParseError::MalformedDebugvar(
+                    format!("missing '__var' prefix: {declaration:?}")
+                ));
             }
         };
 
         let parts: Vec<&str> = stripped_declaration.split("=").collect();
         if parts.len() != 2 {
             warn!("Got something other than 2 fields when parsing debugvar: {:?}", parts);
-            return None;
+            return Err(FamilyParseError::MalformedDebugvar(
+                format!("expected exactly one '=' separator, got {} fields", parts.len())
+            ));
         }
 
         let name: String = parts[0].trim().to_string();
         let value_str = parts[1].trim();
 
         if let Some(value) = Self::parse_value_string(value_str) {
-            Some((name, value))
+            Ok((name, value))
         } else {
-            None
+            Err(FamilyParseError::MalformedDebugvar(
+                format!("could not parse value as u64: {value_str:?}")
+            ))
         }
     }
 
@@ -129,8 +166,8 @@ impl Debugvars {
         let variables: Vec<&str> = content.split(';').collect();
 
         variables.iter().filter_map(|var| {
-            // Parse the variable
-            Self::parse_single_debugvar(var)
+            // Silently skip empty segments and malformed lines
+            Self::parse_single_debugvar(var).ok()
         }).collect()
     }
 
@@ -164,10 +201,10 @@ pub struct Sequences<'a> {
 }
 
 impl<'a> Sequences<'a> {
-    /// Iteates through the raw nodes and parses the sequences
+    /// Iterates through the raw nodes and parses the sequences
     pub fn parse_raw_nodes_content(&self) -> Vec<Sequence> {
         self.raw_nodes.iter().map(|node| {
-            node.0.try_into().unwrap()
+            node.0.try_into().expect("Failed to parse sequence node")
         }).collect()
     }
 
@@ -200,7 +237,7 @@ pub struct Sequence {
 }
 
 impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for Sequence {
-    type Error = String; // TODO: Proper error
+    type Error = FamilyParseError;
 
     fn try_from(value: Node<'a, 'input>) -> Result<Self, Self::Error> {
         // Validate that this is a sequence node
@@ -208,7 +245,8 @@ impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for Sequence {
         assert_eq!(node_name, "sequence");
 
         // Get the name
-        let sequence_name = value.attribute("name").expect("Missing requeired field name");
+        let sequence_name = value.attribute("name")
+            .ok_or_else(|| FamilyParseError::MissingAttribute("name".to_string()))?;
 
         // Get the optional attributes
         let sequence_processor_name = value.attribute("Pname")
@@ -235,7 +273,7 @@ impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for Sequence {
 
         // Try to parse the child nodes
         for child in value.children().filter(|c| c.is_element()) {
-            let element: SequenceElement = child.try_into().expect("Illegal child");
+            let element: SequenceElement = child.try_into()?;
 
             elements.push(element);
         }
@@ -251,31 +289,27 @@ impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for Sequence {
 }
 
 impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for SequenceElement {
-    type Error = String; // TODO: Proper error
+    type Error = FamilyParseError;
 
     fn try_from(value: Node<'a, 'input>) -> Result<Self, Self::Error> {
-        match value.tag_name().name().to_lowercase().as_str() {
-            "block" => {
-                Ok(
-                    <Node<'_, '_> as TryInto<SequenceBlock>>::try_into(value)
-                        .unwrap().into()
-                )
-            },
-            "control" => {
-                Ok(
-                    <Node<'_, '_> as TryInto<SequenceControl>>::try_into(value)
-                        .unwrap().into()
-                )
-            },
-            _ => panic!("Failed to convert to sequence element")
+        if !value.is_element() {
+            // Text/comment nodes are not sequence elements; content-parse is unimplemented
+            return Err(FamilyParseError::UnimplementedContent);
         }
-        // TODO: Parse content
-
+        match value.tag_name().name().to_lowercase().as_str() {
+            "block" => Ok(
+                <Node<'_, '_> as TryInto<SequenceBlock>>::try_into(value)?.into()
+            ),
+            "control" => Ok(
+                <Node<'_, '_> as TryInto<SequenceControl>>::try_into(value)?.into()
+            ),
+            other => Err(FamilyParseError::UnknownElementType(other.to_string())),
+        }
     }
 }
 
 impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for SequenceBlock {
-    type Error = String; // TODO: Proper error
+    type Error = FamilyParseError;
 
     fn try_from(value: Node<'a, 'input>) -> Result<Self, Self::Error> {
         let mut block: Self = serde_roxmltree::from_node(value).unwrap();
@@ -285,7 +319,7 @@ impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for SequenceBlock {
 }
 
 impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for SequenceControl {
-    type Error = String; // TODO: Proper error
+    type Error = FamilyParseError;
 
     fn try_from(value: Node<'a, 'input>) -> Result<Self, Self::Error> {
         // Use serde_roxmltree to parse the basic elements
@@ -293,7 +327,7 @@ impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for SequenceControl {
 
         // Try to parse the child nodes
         for child in value.children().filter(|c| c.is_element()) {
-            let element: SequenceElement = child.try_into().expect("Illegal child");
+            let element: SequenceElement = child.try_into()?;
 
             block.elements.push(element);
         }
@@ -305,7 +339,9 @@ impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for SequenceControl {
         } else if let Some(ref val) = block.conditional_while {
             conditional_string = val.as_str()
         } else {
-            return Err("Failed to get conditional string".to_string());
+            return Err(FamilyParseError::MissingAttribute(
+                "conditional 'if' or 'while' attribute".to_string()
+            ));
         };
 
         let conditional: debug_access::Expression = conditional_string.try_into().expect("Failed to parse conditional string");
@@ -407,7 +443,7 @@ mod tests {
 use roxmltree::Document;
 use serde_roxmltree::RawNode;
 
-use crate::{debug_access::{Assignment, DebugFunction, Expression, Statement::{self}}, pdsc::{Eccn, License, LicenseSet, Release, Releases, Repository}, family::{Sequence, SequenceBlock, SequenceControl, SequenceElement}};
+use crate::{debug_access::{Assignment, DebugFunction, Expression, Statement::{self}}, pdsc::{Eccn, License, LicenseSet, Release, Releases, Repository}, family::{FamilyParseError, Sequence, SequenceBlock, SequenceControl, SequenceElement}};
 
     #[test]
     fn basic_sequence() {
@@ -646,6 +682,42 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
                 ]
             }.into()
         ]);
+    }
+
+    #[test]
+    fn sequence_missing_name_attribute() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<sequence>
+    <block>Write32(0x40000000, 0x1);</block>
+</sequence>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let node = document.root_element();
+        let result: Result<Sequence, _> = node.try_into();
+        assert_eq!(result.unwrap_err(), FamilyParseError::MissingAttribute("name".to_string()));
+    }
+
+    #[test]
+    fn sequence_element_unknown_tag() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<unknown/>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let node = document.root_element();
+        let result: Result<SequenceElement, _> = node.try_into();
+        assert_eq!(result.unwrap_err(), FamilyParseError::UnknownElementType("unknown".to_string()));
+    }
+
+    #[test]
+    fn debugvar_missing_var_prefix() {
+        use crate::family::Debugvars;
+        let result = Debugvars::parse_single_debugvar("  myVar = 0x1;");
+        assert!(matches!(result, Err(FamilyParseError::MalformedDebugvar(_))));
+    }
+
+    #[test]
+    fn debugvar_empty_segment() {
+        use crate::family::Debugvars;
+        let result = Debugvars::parse_single_debugvar("   ");
+        assert!(matches!(result, Err(FamilyParseError::MalformedDebugvar(_))));
     }
 
     #[test]
