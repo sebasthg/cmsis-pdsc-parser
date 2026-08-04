@@ -44,6 +44,64 @@ pub struct Family<'a> {
     /// The device manufacturer/vendor; valid values: [DeviceVendorEnum](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
     pub vendor: String,
 
+    /// Brief family description
+    pub description: Option<String>,
+
+    /// Processor definitions (0..*)
+    #[serde(rename = "processor", default)]
+    pub processor: Vec<Processor>,
+
+    /// Compile-time definitions (0..*)
+    #[serde(rename = "compile", default)]
+    pub compile: Vec<Compile>,
+
+    /// Debug unit assignments (0..*)
+    #[serde(rename = "debug", default)]
+    pub debug: Vec<FamilyDebug>,
+
+    /// Debug configuration (0..1)
+    pub debugconfig: Option<DebugConfig>,
+
+    /// Debug port definitions (0..*)
+    #[serde(rename = "debugport", default)]
+    pub debugport: Vec<DebugPort>,
+
+    /// Access port v1 definitions (0..*)
+    #[serde(rename = "accessportV1", default)]
+    pub access_port_v1: Vec<AccessPortV1>,
+
+    /// Access port v2 definitions (0..*)
+    #[serde(rename = "accessportV2", default)]
+    pub access_port_v2: Vec<AccessPortV2>,
+
+    /// Flash programming algorithms (0..*)
+    #[serde(rename = "algorithm", default)]
+    pub algorithm: Vec<Algorithm>,
+
+    /// Flash information (0..*)
+    #[serde(rename = "flashinfo", default)]
+    pub flashinfo: Vec<FlashInfo>,
+
+    /// Memory regions (0..*)
+    #[serde(rename = "memory", default)]
+    pub memory: Vec<Memory>,
+
+    /// Trace unit definitions (0..*)
+    #[serde(rename = "trace", default)]
+    pub trace: Vec<Trace>,
+
+    /// Reference documentation (0..*)
+    #[serde(rename = "book", default)]
+    pub book: Vec<Book>,
+
+    /// Feature descriptors (0..*)
+    #[serde(rename = "feature", default)]
+    pub feature: Vec<Feature>,
+
+    /// Tool environment entries (0..*)
+    #[serde(rename = "environment", default)]
+    pub environment: Vec<FamilyEnvironment>,
+
     /// Global debug variables
     pub debugvars: Debugvars,
 
@@ -177,6 +235,324 @@ impl Debugvars {
 
         self.parsed_debugvars = Some(vars);
     }
+}
+
+/// Represents a [PDSC processor](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_processor) element
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct Processor {
+    /// Processor instance name for multi-core devices
+    #[serde(rename = "Pname")]
+    pub pname: Option<String>,
+    /// Number of processor units for multi-core devices
+    #[serde(rename = "Punits")]
+    pub punits: Option<u32>,
+    /// Processor core; valid values: [DcoreEnum](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
+    #[serde(rename = "Dcore")]
+    pub dcore: Option<String>,
+    /// Processor core architecture version
+    #[serde(rename = "DcoreVersion")]
+    pub dcore_version: Option<String>,
+    /// Floating point unit; valid values: [DfpuEnum](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
+    #[serde(rename = "Dfpu")]
+    pub dfpu: Option<String>,
+    /// Memory protection unit; valid values: [DmpuEnum](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
+    #[serde(rename = "Dmpu")]
+    pub dmpu: Option<String>,
+    /// DSP instructions support; valid values: [DdspEnum](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
+    #[serde(rename = "Ddsp")]
+    pub ddsp: Option<String>,
+    /// M-Profile Vector Extension (Helium); valid values: [DmveEnum](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
+    #[serde(rename = "Dmve")]
+    pub dmve: Option<String>,
+    /// Pointer Authentication and Branch Target Identification; valid values: [DpacbtiEnum](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
+    #[serde(rename = "Dpacbti")]
+    pub dpacbti: Option<String>,
+    /// TrustZone support; valid values: [DtzEnum](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
+    #[serde(rename = "Dtz")]
+    pub dtz: Option<String>,
+    /// Endianness; valid values: [DendianEnum](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
+    #[serde(rename = "Dendian")]
+    pub dendian: Option<String>,
+    /// Maximum processor clock frequency in Hz
+    #[serde(rename = "Dclock")]
+    pub dclock: Option<u64>,
+}
+
+/// Represents a [PDSC compile](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_compile) element
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct Compile {
+    /// Processor instance name for multi-core devices
+    #[serde(rename = "Pname")]
+    pub pname: Option<String>,
+    /// Include file path injected into all projects
+    pub header: Option<String>,
+    /// Preprocessor define injected into all projects
+    pub define: Option<String>,
+    /// Processor-specific preprocessor define
+    #[serde(rename = "Pdefine")]
+    pub pdefine: Option<String>,
+}
+
+/// Represents a [PDSC debug](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_debug) element
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct FamilyDebug {
+    /// Processor instance name
+    #[serde(rename = "Pname")]
+    pub pname: Option<String>,
+    /// Processor unit index for multi-core devices
+    #[serde(rename = "Punit")]
+    pub punit: Option<u32>,
+    /// Path to the SVD file describing the device registers
+    pub svd: Option<String>,
+    /// Debug port index
+    #[serde(rename = "__dp")]
+    pub dp: Option<u32>,
+    /// Access port index (legacy; use `apid` when possible)
+    #[serde(rename = "__ap")]
+    pub ap: Option<u32>,
+    /// Access port identifier
+    #[serde(rename = "__apid")]
+    pub apid: Option<u32>,
+    /// Base address of the debug component
+    pub address: Option<String>,
+}
+
+/// Represents a [PDSC debugconfig](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_debugconfig) element
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct DebugConfig {
+    /// Default debug interface (`swd`, `jtag`, `cjtag`)
+    pub default: Option<String>,
+    /// Default debug clock frequency in Hz
+    pub clock: Option<u64>,
+    /// SWJ-DP is available (supports both SWD and JTAG)
+    pub swj: Option<bool>,
+    /// Dormant state is supported
+    pub dormant: Option<bool>,
+}
+
+/// Represents a [PDSC debugport](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_debugport) element
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct DebugPort {
+    /// Debug port index
+    #[serde(rename = "__dp")]
+    pub dp: u32,
+    /// JTAG port configuration
+    pub jtag: Option<DebugPortJtag>,
+    /// SWD port configuration
+    pub swd: Option<DebugPortSwd>,
+    /// cJTAG port configuration
+    pub cjtag: Option<DebugPortCjtag>,
+}
+
+/// JTAG debug port parameters
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct DebugPortJtag {
+    /// TAP index on the JTAG chain
+    #[serde(rename = "tapindex")]
+    pub tapindex: Option<u32>,
+}
+
+/// SWD debug port parameters
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct DebugPortSwd {
+    /// Maximum SWD clock in Hz (informational)
+    pub clockmax: Option<u64>,
+}
+
+/// cJTAG debug port parameters
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct DebugPortCjtag {
+    /// Maximum cJTAG clock in Hz (informational)
+    pub clockmax: Option<u64>,
+}
+
+/// Represents a [PDSC accessportV1](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_accessportV1) element
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct AccessPortV1 {
+    /// Access port identifier
+    #[serde(rename = "__apid")]
+    pub apid: u32,
+    /// Parent debug port index
+    #[serde(rename = "__dp")]
+    pub dp: Option<u32>,
+    /// APv1 index on the debug port
+    pub index: u32,
+}
+
+/// Represents a [PDSC accessportV2](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_accessportV2) element
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct AccessPortV2 {
+    /// Access port identifier
+    #[serde(rename = "__apid")]
+    pub apid: u32,
+    /// Parent debug port index
+    #[serde(rename = "__dp")]
+    pub dp: Option<u32>,
+    /// Base address of the access port
+    pub address: String,
+    /// HPROT bus attribute bits
+    #[serde(rename = "HPROT")]
+    pub hprot: Option<u32>,
+    /// Secure privileged access enable
+    #[serde(rename = "SPROT")]
+    pub sprot: Option<u32>,
+    /// Parent access port identifier for hierarchical APv2
+    pub parent: Option<u32>,
+}
+
+/// Represents a [PDSC algorithm](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_algorithm) element
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct Algorithm {
+    /// Path to the flash algorithm file (.FLM)
+    pub name: String,
+    /// Start address of the flash region (hex string, e.g. `"0x00000000"`)
+    pub start: String,
+    /// Size of the flash region in bytes (hex string, e.g. `"0x00010000"`)
+    pub size: String,
+    /// Start address of the RAM buffer used by the algorithm
+    #[serde(rename = "RAMstart")]
+    pub ram_start: Option<String>,
+    /// Size of the RAM buffer in bytes
+    #[serde(rename = "RAMsize")]
+    pub ram_size: Option<String>,
+    /// If `true`, this is the default algorithm for the device
+    pub default: Option<bool>,
+    /// Algorithm style (`Keil` or `IAR`)
+    pub style: Option<String>,
+    /// Processor instance name this algorithm applies to
+    #[serde(rename = "Pname")]
+    pub pname: Option<String>,
+}
+
+/// Represents a [PDSC flashinfo](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_flashinfo) element
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct FlashInfo {
+    /// Path to the flash device description file
+    pub name: Option<String>,
+    /// Start address of the flash device (hex string)
+    pub start: String,
+    /// Flash page size in bytes (hex string)
+    pub pagesize: Option<String>,
+    /// Erased-byte value (hex string, usually `"0xFF"`)
+    pub blankval: Option<String>,
+    /// Fill byte value for gaps (hex string)
+    pub filler: Option<String>,
+    /// Page program time in microseconds
+    pub ptime: Option<u32>,
+    /// Sector erase time in microseconds
+    pub etime: Option<u32>,
+    /// Processor instance name this info applies to
+    #[serde(rename = "Pname")]
+    pub pname: Option<String>,
+    /// Contiguous flash blocks (0..*)
+    #[serde(rename = "block", default)]
+    pub blocks: Vec<FlashBlock>,
+    /// Gaps between flash regions (0..*)
+    #[serde(rename = "gap", default)]
+    pub gaps: Vec<FlashGap>,
+}
+
+/// A contiguous block within a flash device
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct FlashBlock {
+    /// Count of sectors in this block
+    pub count: u32,
+    /// Sector size in bytes (hex string)
+    pub size: String,
+}
+
+/// A gap between flash regions
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct FlashGap {
+    /// Count of gap sectors
+    pub count: u32,
+    /// Gap sector size in bytes (hex string)
+    pub size: String,
+}
+
+/// Represents a [PDSC memory](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_memory) element
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct Memory {
+    /// Unique name for this memory region
+    pub name: Option<String>,
+    /// Access permissions (`r`, `rw`, `rwx`, etc.)
+    pub access: Option<String>,
+    /// Start address of the memory region (hex string)
+    pub start: String,
+    /// Size of the memory region in bytes (hex string)
+    pub size: String,
+    /// If `true`, this is the default memory region
+    pub default: Option<bool>,
+    /// If `true`, this region contains the startup code
+    pub startup: Option<bool>,
+    /// If `true`, do not zero-initialise this region
+    pub uninit: Option<bool>,
+    /// Name of the memory region this region aliases
+    pub alias: Option<String>,
+    /// Processor instance name this region applies to
+    #[serde(rename = "Pname")]
+    pub pname: Option<String>,
+}
+
+/// Represents a [PDSC trace](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_trace) element
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct Trace {
+    /// Processor instance name
+    #[serde(rename = "Pname")]
+    pub pname: Option<String>,
+    /// Debug port index
+    #[serde(rename = "__dp")]
+    pub dp: Option<u32>,
+    /// Access port identifier for the trace funnel
+    #[serde(rename = "__apid")]
+    pub apid: Option<u32>,
+    /// Base address of the trace component
+    pub address: Option<String>,
+    /// Trace type (`ETM`, `MTB`, `SWO`, `TPIU`)
+    #[serde(rename = "type")]
+    pub trace_type: Option<String>,
+}
+
+/// Represents a [PDSC book](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_book) element
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct Book {
+    /// Path or URL to the document
+    pub name: String,
+    /// Human-readable document title
+    pub title: String,
+    /// Processor instance name this book applies to
+    #[serde(rename = "Pname")]
+    pub pname: Option<String>,
+    /// If `true`, this document is public
+    pub public: Option<bool>,
+}
+
+/// Represents a [PDSC feature](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_feature) element;
+/// valid `feature_type` values: [DeviceFeatureEnum](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct Feature {
+    /// Feature type identifier
+    #[serde(rename = "type")]
+    pub feature_type: String,
+    /// Primary numeric parameter (e.g. channel count)
+    pub n: Option<f64>,
+    /// Secondary numeric parameter
+    pub m: Option<f64>,
+    /// Human-readable feature name
+    pub name: Option<String>,
+    /// Processor instance name this feature applies to
+    #[serde(rename = "Pname")]
+    pub pname: Option<String>,
+}
+
+/// Represents an [environment](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_environment) entry within a family
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct FamilyEnvironment {
+    /// Tool environment identifier
+    pub name: String,
+    /// Processor instance name
+    #[serde(rename = "Pname")]
+    pub pname: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -759,5 +1135,247 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
                 ]
             }.into()
         ]);
+    }
+
+    #[test]
+    fn parse_family_with_description() {
+        // Family with a description element
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<family Dfamily="STM32F1" Dvendor="STMicroelectronics:13">
+    <description>STM32F1 Arm Cortex-M3 microcontroller series</description>
+    <debugvars></debugvars>
+    <sequences/>
+</family>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(family.description, Some("STM32F1 Arm Cortex-M3 microcontroller series".to_string()));
+        assert_eq!(family.processor.len(), 0);
+    }
+
+    #[test]
+    fn parse_family_processor() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<family Dfamily="LPC" Dvendor="NXP:11">
+    <processor Pname="Cortex-M3" Dcore="Cortex-M3" Dfpu="NO_FPU" Dmpu="NO_MPU" Dclock="120000000"/>
+    <debugvars></debugvars>
+    <sequences/>
+</family>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(family.processor.len(), 1);
+        let p = &family.processor[0];
+        assert_eq!(p.pname, Some("Cortex-M3".to_string()));
+        assert_eq!(p.dcore, Some("Cortex-M3".to_string()));
+        assert_eq!(p.dfpu, Some("NO_FPU".to_string()));
+        assert_eq!(p.dclock, Some(120_000_000));
+    }
+
+    #[test]
+    fn parse_family_algorithm() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<family Dfamily="STM32F1" Dvendor="STMicroelectronics:13">
+    <algorithm name="Flash/STM32F1xx_128.FLM" start="0x08000000" size="0x00020000"
+               RAMstart="0x20000000" RAMsize="0x00001000" default="true"/>
+    <debugvars></debugvars>
+    <sequences/>
+</family>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(family.algorithm.len(), 1);
+        let a = &family.algorithm[0];
+        assert_eq!(a.name, "Flash/STM32F1xx_128.FLM");
+        assert_eq!(a.start, "0x08000000");
+        assert_eq!(a.size, "0x00020000");
+        assert_eq!(a.ram_start, Some("0x20000000".to_string()));
+        assert_eq!(a.ram_size, Some("0x00001000".to_string()));
+        assert_eq!(a.default, Some(true));
+    }
+
+    #[test]
+    fn parse_family_memory() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<family Dfamily="STM32F1" Dvendor="STMicroelectronics:13">
+    <memory name="IROM1" access="rx" start="0x08000000" size="0x00020000" startup="true" default="true"/>
+    <memory name="IRAM1" access="rw" start="0x20000000" size="0x00005000" uninit="true" default="true"/>
+    <debugvars></debugvars>
+    <sequences/>
+</family>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(family.memory.len(), 2);
+        let rom = &family.memory[0];
+        assert_eq!(rom.name, Some("IROM1".to_string()));
+        assert_eq!(rom.access, Some("rx".to_string()));
+        assert_eq!(rom.start, "0x08000000");
+        assert_eq!(rom.startup, Some(true));
+        assert_eq!(rom.default, Some(true));
+        let ram = &family.memory[1];
+        assert_eq!(ram.uninit, Some(true));
+    }
+
+    #[test]
+    fn parse_family_book() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<family Dfamily="STM32F1" Dvendor="STMicroelectronics:13">
+    <book name="Docs/DM00031936.pdf" title="STM32F1 Reference Manual"/>
+    <debugvars></debugvars>
+    <sequences/>
+</family>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(family.book.len(), 1);
+        assert_eq!(family.book[0].name, "Docs/DM00031936.pdf");
+        assert_eq!(family.book[0].title, "STM32F1 Reference Manual");
+        assert_eq!(family.book[0].public, None);
+    }
+
+    #[test]
+    fn parse_family_feature() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<family Dfamily="STM32F1" Dvendor="STMicroelectronics:13">
+    <feature type="UART" n="3" name="Universal Asynchronous Receiver/Transmitter"/>
+    <feature type="ADC" n="1" m="12"/>
+    <debugvars></debugvars>
+    <sequences/>
+</family>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(family.feature.len(), 2);
+        assert_eq!(family.feature[0].feature_type, "UART");
+        assert_eq!(family.feature[0].n, Some(3.0));
+        assert_eq!(family.feature[0].name, Some("Universal Asynchronous Receiver/Transmitter".to_string()));
+        assert_eq!(family.feature[1].m, Some(12.0));
+    }
+
+    #[test]
+    fn parse_family_debug_and_debugconfig() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<family Dfamily="STM32F1" Dvendor="STMicroelectronics:13">
+    <debug svd="SVD/STM32F103xx.svd" __dp="0" __ap="0"/>
+    <debugconfig default="swd" clock="5000000" swj="true"/>
+    <debugvars></debugvars>
+    <sequences/>
+</family>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(family.debug.len(), 1);
+        assert_eq!(family.debug[0].svd, Some("SVD/STM32F103xx.svd".to_string()));
+        assert_eq!(family.debug[0].dp, Some(0));
+        assert_eq!(family.debug[0].ap, Some(0));
+        let dc = family.debugconfig.as_ref().unwrap();
+        assert_eq!(dc.default, Some("swd".to_string()));
+        assert_eq!(dc.clock, Some(5_000_000));
+        assert_eq!(dc.swj, Some(true));
+    }
+
+    #[test]
+    fn parse_family_debugport() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<family Dfamily="STM32F1" Dvendor="STMicroelectronics:13">
+    <debugport __dp="0">
+        <swd/>
+        <jtag tapindex="0"/>
+    </debugport>
+    <debugvars></debugvars>
+    <sequences/>
+</family>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(family.debugport.len(), 1);
+        let dp = &family.debugport[0];
+        assert_eq!(dp.dp, 0);
+        assert!(dp.swd.is_some());
+        assert!(dp.jtag.is_some());
+        assert_eq!(dp.jtag.as_ref().unwrap().tapindex, Some(0));
+        assert!(dp.cjtag.is_none());
+    }
+
+    #[test]
+    fn parse_family_access_ports() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<family Dfamily="STM32F1" Dvendor="STMicroelectronics:13">
+    <accessportV1 __apid="0" __dp="0" index="0"/>
+    <accessportV2 __apid="1" __dp="0" address="0xE0041000"/>
+    <debugvars></debugvars>
+    <sequences/>
+</family>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(family.access_port_v1.len(), 1);
+        assert_eq!(family.access_port_v1[0].apid, 0);
+        assert_eq!(family.access_port_v1[0].dp, Some(0));
+        assert_eq!(family.access_port_v1[0].index, 0);
+        assert_eq!(family.access_port_v2.len(), 1);
+        assert_eq!(family.access_port_v2[0].apid, 1);
+        assert_eq!(family.access_port_v2[0].address, "0xE0041000");
+    }
+
+    #[test]
+    fn parse_family_compile() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<family Dfamily="STM32F1" Dvendor="STMicroelectronics:13">
+    <compile header="Include/stm32f1xx.h" define="STM32F1"/>
+    <debugvars></debugvars>
+    <sequences/>
+</family>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(family.compile.len(), 1);
+        assert_eq!(family.compile[0].header, Some("Include/stm32f1xx.h".to_string()));
+        assert_eq!(family.compile[0].define, Some("STM32F1".to_string()));
+    }
+
+    #[test]
+    fn parse_family_flashinfo() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<family Dfamily="STM32F1" Dvendor="STMicroelectronics:13">
+    <flashinfo start="0x08000000" pagesize="0x400" blankval="0xFF">
+        <block count="128" size="0x400"/>
+    </flashinfo>
+    <debugvars></debugvars>
+    <sequences/>
+</family>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(family.flashinfo.len(), 1);
+        let fi = &family.flashinfo[0];
+        assert_eq!(fi.start, "0x08000000");
+        assert_eq!(fi.pagesize, Some("0x400".to_string()));
+        assert_eq!(fi.blankval, Some("0xFF".to_string()));
+        assert_eq!(fi.blocks.len(), 1);
+        assert_eq!(fi.blocks[0].count, 128);
+        assert_eq!(fi.blocks[0].size, "0x400");
+    }
+
+    #[test]
+    fn parse_family_trace() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<family Dfamily="STM32F1" Dvendor="STMicroelectronics:13">
+    <trace __dp="0" __apid="1" address="0xE0041000" type="ETM"/>
+    <debugvars></debugvars>
+    <sequences/>
+</family>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(family.trace.len(), 1);
+        assert_eq!(family.trace[0].dp, Some(0));
+        assert_eq!(family.trace[0].apid, Some(1));
+        assert_eq!(family.trace[0].address, Some("0xE0041000".to_string()));
+        assert_eq!(family.trace[0].trace_type, Some("ETM".to_string()));
+    }
+
+    #[test]
+    fn parse_family_environment() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<family Dfamily="STM32F1" Dvendor="STMicroelectronics:13">
+    <environment name="uv" Pname="Core0"/>
+    <debugvars></debugvars>
+    <sequences/>
+</family>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(family.environment.len(), 1);
+        assert_eq!(family.environment[0].name, "uv");
+        assert_eq!(family.environment[0].pname, Some("Core0".to_string()));
     }
 }
