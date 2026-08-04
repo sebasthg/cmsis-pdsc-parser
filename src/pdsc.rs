@@ -13,6 +13,7 @@ use crate::boards::Boards;
 use crate::parts::Parts;
 use crate::taxonomy::Taxonomy;
 use crate::part_taxonomy::PartTaxonomy;
+use crate::apis::Apis;
 
 #[derive(Debug, PartialEq, Deserialize)]
 /// Represents [PDSC Package](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_package_pg.html)
@@ -82,11 +83,12 @@ pub struct Package<'a> {
     #[serde(rename = "part-taxonomy")]
     pub part_taxonomy: Option<PartTaxonomy>,
 
+    /// Application programming interfaces defined by this pack
+    pub apis: Option<Apis>,
+
     #[serde(borrow)]
     /// The device family, the devices, and variants
     pub devices: Devices<'a>,
-
-    // TODO: Add APIs
 
     // TODO: Add conditions
 
