@@ -56,6 +56,12 @@ pub struct Generator {
     /// Generator tool files (executables, libraries, etc.) that ship inside the pack
     pub files: Option<Files>,
 
+    /// Deprecated; use `exe.command` instead
+    pub command: Option<String>,
+
+    /// Deprecated; use `exe.argument` inside `exe` instead
+    pub arguments: Option<GeneratorArguments>,
+
     // TODO: extensions — vendor-specific extension section, requires RawNode handling
 }
 
@@ -206,11 +212,19 @@ pub struct File {
     pub version: Option<String>,
 }
 
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+/// Deprecated arguments wrapper; use `exe.argument` instead
+pub struct GeneratorArguments {
+    /// Individual argument strings (0..*)
+    #[serde(rename = "argument", default)]
+    pub argument: Vec<String>,
+}
+
 #[cfg(test)]
 mod tests {
     use crate::generators::{
-        Argument, Command, Eclipse, Exe, File, Files, Generators, Gpdsc, ProjectFiles,
-        Select, Web,
+        Argument, Command, Eclipse, Exe, File, Files, Generators,
+        Gpdsc, ProjectFiles, Select, Web,
     };
 
     #[test]
@@ -335,5 +349,35 @@ mod tests {
         }));
         assert_eq!(generator.exe, None);
         assert_eq!(generator.eclipse, None);
+    }
+
+    #[test]
+    fn parse_generator_deprecated_command_arguments() {
+        // Tests that the deprecated top-level <command> and <arguments> children
+        // of a <generator> element are captured correctly.
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<generators>
+    <generator id="OldStyleGen">
+        <description>Legacy generator using deprecated command/arguments elements</description>
+        <command>$S/tools/oldgen</command>
+        <arguments>
+            <argument>--project</argument>
+            <argument>$P</argument>
+        </arguments>
+    </generator>
+</generators>"#;
+
+        let generators: Generators = serde_roxmltree::from_str(xml_str).unwrap();
+        assert_eq!(generators.generators.len(), 1);
+
+        let generator = &generators.generators[0];
+        assert_eq!(generator.id, "OldStyleGen");
+        assert_eq!(generator.command, Some("$S/tools/oldgen".to_string()));
+        let args = generator.arguments.as_ref().expect("arguments should be present");
+        assert_eq!(args.argument, vec![
+            "--project".to_string(),
+            "$P".to_string(),
+        ]);
+        assert_eq!(generator.exe, None);
     }
 }
