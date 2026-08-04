@@ -12,6 +12,7 @@ mod requirements;
 mod generators;
 mod boards;
 mod parts;
+mod taxonomy;
 
 
 const EXPECTED_DEBUGVARS: [(&str, u64); 26] = [

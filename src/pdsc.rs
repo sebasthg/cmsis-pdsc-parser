@@ -11,6 +11,7 @@ use crate::requirements::Requirements;
 use crate::generators::Generators;
 use crate::boards::Boards;
 use crate::parts::Parts;
+use crate::taxonomy::Taxonomy;
 
 #[derive(Debug, PartialEq, Deserialize)]
 /// Represents [PDSC Package](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_package_pg.html)
@@ -73,11 +74,12 @@ pub struct Package<'a> {
     /// Hardware parts described in this pack
     pub parts: Option<Parts>,
 
+    /// Component class and group taxonomy for this pack
+    pub taxonomy: Option<Taxonomy>,
+
     #[serde(borrow)]
     /// The device family, the devices, and variants
     pub devices: Devices<'a>,
-
-    // TODO: Add taxonomy
 
     // TODO: Add part-taxonomy
 
