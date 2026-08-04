@@ -16,9 +16,8 @@
 //!
 //! Minimal example:
 //!
-//! ```rust
-//! use cmsis_pdsc_parser;
-//! use std::io::read;
+//! ```rust,no_run
+//! use std::io::Read;
 //!
 //! const PDSC_PATH: &str = "Microchip.PIC32CM-PL_DFP.pdsc";
 //!

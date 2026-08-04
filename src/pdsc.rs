@@ -205,7 +205,7 @@ pub struct License {
 /// Represents the [PDSC Dominate](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_dominate.html) element
 pub struct Dominate {
     /// Descriptive text that explains the reason for dominate
-    info: Option<String>
+    pub info: Option<String>
 }
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
@@ -281,9 +281,9 @@ pub struct Environments {
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 /// Represents the [PDSC Environment](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_environment) element
 pub struct Environment {
-    name: String,
+    pub name: String,
     #[serde(rename = "Pname")]
-    processor_name: Option<String>,
+    pub processor_name: Option<String>,
     // TODO: Handle the `anyAttribute` children
 }
 
