@@ -50,14 +50,14 @@ pub struct TargetsList {
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 /// Represents the [PDSC PackagesType](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_requirements_pg.html#element_packages) element
 pub struct Package {
-    /// The package vendor
-    pub vendor: String, // TODO: Add support for "RestrictedString"
+    /// The package vendor; pattern: `RestrictedString` = `[A-Za-z0-9_\-]+`
+    pub vendor: String,
 
     /// Name of the pack
     pub name: String,
 
-    /// Version of the required pack
-    pub version: Option<String> // TODO: Parse `VersionType`
+    /// Version of the required pack; pattern: `VersionType` (e.g. `1.2.3` or `>=1.0.0`)
+    pub version: Option<String>
 }
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
