@@ -158,6 +158,18 @@ pub struct Filter {
 
     /// References another condition by its `id`; this filter is true only if that condition is true
     pub condition: Option<String>,
+
+    /// Deprecated since v1.5; use [`device_name`](Self::device_name) with the family prefix instead; see [pdsc_conditions_pg](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_conditions_pg.html)
+    #[serde(rename = "Dfamily")]
+    pub d_family: Option<String>,
+
+    /// Deprecated since v1.5; use [DsubFamily](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_conditions_pg.html)
+    #[serde(rename = "DsubFamily")]
+    pub d_sub_family: Option<String>,
+
+    /// Deprecated since v1.5; use [Dvariant](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_conditions_pg.html)
+    #[serde(rename = "Dvariant")]
+    pub d_variant: Option<String>,
 }
 
 #[cfg(test)]
@@ -289,5 +301,37 @@ mod tests {
         let d = &c.deny[0];
         assert_eq!(d.condition, Some("NoARM".to_string()));
         assert_eq!(d.device_vendor, None);
+    }
+
+    #[test]
+    fn parse_deprecated_filter_attrs() {
+        // Verifies that deprecated Dfamily / DsubFamily / Dvariant attributes
+        // are captured rather than silently dropped.
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<conditions>
+    <condition id="LegacyDeviceFilter">
+        <require Dfamily="STM32F4" DsubFamily="STM32F405" Dvariant="STM32F405RGTx"/>
+        <accept Dfamily="NXP_LPC" DsubFamily="LPC176x" Dvariant="LPC1769"/>
+    </condition>
+</conditions>"#;
+
+        let conds: Conditions = serde_roxmltree::from_str(xml_str).unwrap();
+        assert_eq!(conds.conditions.len(), 1);
+
+        let c = &conds.conditions[0];
+        assert_eq!(c.id, "LegacyDeviceFilter");
+
+        let r = &c.require[0];
+        assert_eq!(r.d_family, Some("STM32F4".to_string()));
+        assert_eq!(r.d_sub_family, Some("STM32F405".to_string()));
+        assert_eq!(r.d_variant, Some("STM32F405RGTx".to_string()));
+        // Non-deprecated attrs still absent
+        assert_eq!(r.device_vendor, None);
+        assert_eq!(r.device_name, None);
+
+        let a = &c.accept[0];
+        assert_eq!(a.d_family, Some("NXP_LPC".to_string()));
+        assert_eq!(a.d_sub_family, Some("LPC176x".to_string()));
+        assert_eq!(a.d_variant, Some("LPC1769".to_string()));
     }
 }
