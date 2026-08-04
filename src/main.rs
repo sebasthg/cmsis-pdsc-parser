@@ -7,6 +7,7 @@ use crate::{pdsc::{License, LicenseSet}, requirements::{Package, PackagesList}};
 const PDSC_PATH: &str = "Microchip.PIC32CM-PL_DFP.pdsc";
 
 mod pdsc;
+mod family;
 mod debug_access;
 mod requirements;
 mod generators;

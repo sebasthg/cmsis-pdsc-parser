@@ -139,16 +139,18 @@ pub struct Component {
     pub pre_include_local_component_h: Option<String>,
 
     /// Source and header files that implement this component
+    #[serde(default)]
     pub files: ComponentFiles,
 
     /// Key/value metadata extensions for toolchain or IDE integration
+    #[serde(default)]
     pub extensions: ComponentExtensions,
 
     /// IDE-specific tool integration environments (0..1)
     pub environments: Option<ComponentEnvironments>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Deserialize, Serialize, Default)]
 /// Represents the [files](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_components_pg.html#element_files) grouping element inside a component
 pub struct ComponentFiles {
     /// Individual file entries (1..*)
@@ -198,7 +200,7 @@ pub struct ComponentFile {
     pub projectpath: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Deserialize, Serialize, Default)]
 /// Represents the [extensions](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_components_pg.html#element_extensions) grouping element inside a component
 pub struct ComponentExtensions {
     /// Key/value extension entries (1..*)
