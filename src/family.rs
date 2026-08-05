@@ -7,6 +7,34 @@ use log::{error, trace, warn};
 use serde_roxmltree::RawNode;
 use crate::debug_access::{self, Statement};
 
+/// Deserializes a `u32` from a decimal or `0x`-prefixed hex string.
+fn de_uint<'de, D>(d: D) -> Result<u32, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s = String::deserialize(d)?;
+    let trimmed = s.trim();
+    if let Some(hex) = trimmed.strip_prefix("0x").or_else(|| trimmed.strip_prefix("0X")) {
+        u32::from_str_radix(hex, 16).map_err(serde::de::Error::custom)
+    } else {
+        trimmed.parse::<u32>().map_err(serde::de::Error::custom)
+    }
+}
+
+/// Deserializes an `Option<bool>` from an xs:boolean string ("true", "false", "1", "0").
+/// Only called when the field is present; absent fields use `default` (None).
+fn de_opt_bool<'de, D>(d: D) -> Result<Option<bool>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s = String::deserialize(d)?;
+    match s.as_str() {
+        "true" | "1" => Ok(Some(true)),
+        "false" | "0" => Ok(Some(false)),
+        other => Err(serde::de::Error::custom(format!("expected xs:boolean, got: {other}"))),
+    }
+}
+
 /// Parse error for family XML elements.
 #[derive(Debug, PartialEq)]
 pub enum FamilyParseError {
@@ -102,6 +130,14 @@ pub struct Family<'a> {
     #[serde(rename = "environment", default)]
     pub environment: Vec<FamilyEnvironment>,
 
+    /// Sub-family groupings within this family (0..*)
+    #[serde(rename = "subFamily", default)]
+    pub sub_families: Vec<SubFamily<'a>>,
+
+    /// Devices directly in this family, without a sub-family grouping (0..*)
+    #[serde(rename = "device", default)]
+    pub devices: Vec<Device<'a>>,
+
     /// Global debug variables
     pub debugvars: Debugvars,
 
@@ -119,7 +155,7 @@ pub enum TraceSetup {
     Legacy
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Debug, PartialEq, Deserialize, Default)]
 /// Represents [PDSC Debugvars](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_debugvars)
 pub struct Debugvars {
     /// The relative path to the configuration file containing debugvars
@@ -325,8 +361,10 @@ pub struct DebugConfig {
     /// Default debug clock frequency in Hz
     pub clock: Option<u64>,
     /// SWJ-DP is available (supports both SWD and JTAG)
+    #[serde(default, deserialize_with = "de_opt_bool")]
     pub swj: Option<bool>,
     /// Dormant state is supported
+    #[serde(default, deserialize_with = "de_opt_bool")]
     pub dormant: Option<bool>,
 }
 
@@ -416,6 +454,7 @@ pub struct Algorithm {
     #[serde(rename = "RAMsize")]
     pub ram_size: Option<String>,
     /// If `true`, this is the default algorithm for the device
+    #[serde(default, deserialize_with = "de_opt_bool")]
     pub default: Option<bool>,
     /// Algorithm style (`Keil` or `IAR`)
     pub style: Option<String>,
@@ -456,6 +495,7 @@ pub struct FlashInfo {
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct FlashBlock {
     /// Count of sectors in this block
+    #[serde(deserialize_with = "de_uint")]
     pub count: u32,
     /// Sector size in bytes (hex string)
     pub size: String,
@@ -465,6 +505,7 @@ pub struct FlashBlock {
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct FlashGap {
     /// Count of gap sectors
+    #[serde(deserialize_with = "de_uint")]
     pub count: u32,
     /// Gap sector size in bytes (hex string)
     pub size: String,
@@ -482,10 +523,13 @@ pub struct Memory {
     /// Size of the memory region in bytes (hex string)
     pub size: String,
     /// If `true`, this is the default memory region
+    #[serde(default, deserialize_with = "de_opt_bool")]
     pub default: Option<bool>,
     /// If `true`, this region contains the startup code
+    #[serde(default, deserialize_with = "de_opt_bool")]
     pub startup: Option<bool>,
     /// If `true`, do not zero-initialise this region
+    #[serde(default, deserialize_with = "de_opt_bool")]
     pub uninit: Option<bool>,
     /// Name of the memory region this region aliases
     pub alias: Option<String>,
@@ -524,6 +568,7 @@ pub struct Book {
     #[serde(rename = "Pname")]
     pub pname: Option<String>,
     /// If `true`, this document is public
+    #[serde(default, deserialize_with = "de_opt_bool")]
     pub public: Option<bool>,
 }
 
@@ -555,7 +600,180 @@ pub struct FamilyEnvironment {
     pub pname: Option<String>,
 }
 
+/// Represents a [PDSC variant](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_variant) element
+///
+/// Defines a named variant of a device, overriding or extending the parent device's properties.
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+pub struct Variant {
+    /// Variant name
+    #[serde(rename = "Dvariant")]
+    pub variant_name: String,
+    /// Brief variant description
+    pub description: Option<String>,
+    /// Processor definitions (0..*)
+    #[serde(rename = "processor", default)]
+    pub processor: Vec<Processor>,
+    /// Compile-time definitions (0..*)
+    #[serde(rename = "compile", default)]
+    pub compile: Vec<Compile>,
+    /// Debug unit assignments (0..*)
+    #[serde(rename = "debug", default)]
+    pub debug: Vec<FamilyDebug>,
+    /// Debug configuration (0..1)
+    pub debugconfig: Option<DebugConfig>,
+    /// Debug port definitions (0..*)
+    #[serde(rename = "debugport", default)]
+    pub debugport: Vec<DebugPort>,
+    /// Access port v1 definitions (0..*)
+    #[serde(rename = "accessportV1", default)]
+    pub access_port_v1: Vec<AccessPortV1>,
+    /// Access port v2 definitions (0..*)
+    #[serde(rename = "accessportV2", default)]
+    pub access_port_v2: Vec<AccessPortV2>,
+    /// Flash programming algorithms (0..*)
+    #[serde(rename = "algorithm", default)]
+    pub algorithm: Vec<Algorithm>,
+    /// Flash information (0..*)
+    #[serde(rename = "flashinfo", default)]
+    pub flashinfo: Vec<FlashInfo>,
+    /// Memory regions (0..*)
+    #[serde(rename = "memory", default)]
+    pub memory: Vec<Memory>,
+    /// Trace unit definitions (0..*)
+    #[serde(rename = "trace", default)]
+    pub trace: Vec<Trace>,
+    /// Reference documentation (0..*)
+    #[serde(rename = "book", default)]
+    pub book: Vec<Book>,
+    /// Feature descriptors (0..*)
+    #[serde(rename = "feature", default)]
+    pub feature: Vec<Feature>,
+    /// Tool environment entries (0..*)
+    #[serde(rename = "environment", default)]
+    pub environment: Vec<FamilyEnvironment>,
+}
+
+/// Represents a [PDSC device](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_device) element
 #[derive(Debug, PartialEq, Deserialize)]
+pub struct Device<'a> {
+    /// Device name
+    #[serde(rename = "Dname")]
+    pub device_name: String,
+    /// Brief device description
+    pub description: Option<String>,
+    /// Processor definitions (0..*)
+    #[serde(rename = "processor", default)]
+    pub processor: Vec<Processor>,
+    /// Compile-time definitions (0..*)
+    #[serde(rename = "compile", default)]
+    pub compile: Vec<Compile>,
+    /// Debug unit assignments (0..*)
+    #[serde(rename = "debug", default)]
+    pub debug: Vec<FamilyDebug>,
+    /// Debug configuration (0..1)
+    pub debugconfig: Option<DebugConfig>,
+    /// Debug port definitions (0..*)
+    #[serde(rename = "debugport", default)]
+    pub debugport: Vec<DebugPort>,
+    /// Access port v1 definitions (0..*)
+    #[serde(rename = "accessportV1", default)]
+    pub access_port_v1: Vec<AccessPortV1>,
+    /// Access port v2 definitions (0..*)
+    #[serde(rename = "accessportV2", default)]
+    pub access_port_v2: Vec<AccessPortV2>,
+    /// Flash programming algorithms (0..*)
+    #[serde(rename = "algorithm", default)]
+    pub algorithm: Vec<Algorithm>,
+    /// Flash information (0..*)
+    #[serde(rename = "flashinfo", default)]
+    pub flashinfo: Vec<FlashInfo>,
+    /// Memory regions (0..*)
+    #[serde(rename = "memory", default)]
+    pub memory: Vec<Memory>,
+    /// Trace unit definitions (0..*)
+    #[serde(rename = "trace", default)]
+    pub trace: Vec<Trace>,
+    /// Reference documentation (0..*)
+    #[serde(rename = "book", default)]
+    pub book: Vec<Book>,
+    /// Feature descriptors (0..*)
+    #[serde(rename = "feature", default)]
+    pub feature: Vec<Feature>,
+    /// Tool environment entries (0..*)
+    #[serde(rename = "environment", default)]
+    pub environment: Vec<FamilyEnvironment>,
+    /// Device-level debug variables (rare; most packs define these at family level)
+    #[serde(default)]
+    pub debugvars: Debugvars,
+    /// Device-level debug sequences (rare; most packs define these at family level)
+    #[serde(borrow, default)]
+    pub sequences: Sequences<'a>,
+    /// Device variants (0..*)
+    #[serde(rename = "variant", default)]
+    pub variants: Vec<Variant>,
+}
+
+/// Represents a [PDSC subFamily](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_subFamily) element
+#[derive(Debug, PartialEq, Deserialize)]
+pub struct SubFamily<'a> {
+    /// Sub-family name
+    #[serde(rename = "DsubFamily")]
+    pub sub_family_name: String,
+    /// Brief sub-family description
+    pub description: Option<String>,
+    /// Processor definitions (0..*)
+    #[serde(rename = "processor", default)]
+    pub processor: Vec<Processor>,
+    /// Compile-time definitions (0..*)
+    #[serde(rename = "compile", default)]
+    pub compile: Vec<Compile>,
+    /// Debug unit assignments (0..*)
+    #[serde(rename = "debug", default)]
+    pub debug: Vec<FamilyDebug>,
+    /// Debug configuration (0..1)
+    pub debugconfig: Option<DebugConfig>,
+    /// Debug port definitions (0..*)
+    #[serde(rename = "debugport", default)]
+    pub debugport: Vec<DebugPort>,
+    /// Access port v1 definitions (0..*)
+    #[serde(rename = "accessportV1", default)]
+    pub access_port_v1: Vec<AccessPortV1>,
+    /// Access port v2 definitions (0..*)
+    #[serde(rename = "accessportV2", default)]
+    pub access_port_v2: Vec<AccessPortV2>,
+    /// Flash programming algorithms (0..*)
+    #[serde(rename = "algorithm", default)]
+    pub algorithm: Vec<Algorithm>,
+    /// Flash information (0..*)
+    #[serde(rename = "flashinfo", default)]
+    pub flashinfo: Vec<FlashInfo>,
+    /// Memory regions (0..*)
+    #[serde(rename = "memory", default)]
+    pub memory: Vec<Memory>,
+    /// Trace unit definitions (0..*)
+    #[serde(rename = "trace", default)]
+    pub trace: Vec<Trace>,
+    /// Reference documentation (0..*)
+    #[serde(rename = "book", default)]
+    pub book: Vec<Book>,
+    /// Feature descriptors (0..*)
+    #[serde(rename = "feature", default)]
+    pub feature: Vec<Feature>,
+    /// Tool environment entries (0..*)
+    #[serde(rename = "environment", default)]
+    pub environment: Vec<FamilyEnvironment>,
+    /// Sub-family-level debug variables
+    #[serde(default)]
+    pub debugvars: Debugvars,
+    /// Sub-family-level debug sequences
+    #[serde(borrow, default)]
+    pub sequences: Sequences<'a>,
+    /// Devices within this sub-family (0..*)
+    #[serde(rename = "device", default)]
+    pub devices: Vec<Device<'a>>,
+}
+
+#[derive(Debug, PartialEq, Deserialize, Default)]
 /// Represents [PDSC sequences](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_sequences)
 pub struct Sequences<'a> {
     /// Trace setup configuration
@@ -1377,5 +1595,113 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
         assert_eq!(family.environment.len(), 1);
         assert_eq!(family.environment[0].name, "uv");
         assert_eq!(family.environment[0].pname, Some("Core0".to_string()));
+    }
+
+    #[test]
+    fn parse_device_basic() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<device Dname="PIC32CM1216PL10028">
+    <processor Dcore="Cortex-M0+" Dendian="Little-endian" Dmpu="NO_MPU" Dfpu="NO_FPU"
+               Ddsp="NO_DSP" Dtz="NO_TZ" Dmve="NO_MVE" Dclock="24000000" DcoreVersion="r0p0"/>
+    <memory name="FLASH" start="0x0C000000" size="0x20000" access="rx" default="1" startup="1"/>
+    <memory name="HSRAM" start="0x20000000" size="0x4000" default="1" access="rwx"/>
+</device>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let device: crate::family::Device = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(device.device_name, "PIC32CM1216PL10028");
+        assert_eq!(device.processor.len(), 1);
+        assert_eq!(device.processor[0].dcore, Some("Cortex-M0+".to_string()));
+        assert_eq!(device.processor[0].dclock, Some(24000000));
+        assert_eq!(device.memory.len(), 2);
+        assert_eq!(device.memory[0].name, Some("FLASH".to_string()));
+        assert_eq!(device.memory[0].start, "0x0C000000");
+        assert_eq!(device.memory[1].name, Some("HSRAM".to_string()));
+        assert_eq!(device.variants.len(), 0);
+    }
+
+    #[test]
+    fn parse_device_with_variant() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<device Dname="LPC1768">
+    <processor Dcore="Cortex-M3" Dclock="100000000"/>
+    <variant Dvariant="LPC1768FBD100">
+        <memory name="FLASH" start="0x00000000" size="0x80000" access="rx"/>
+    </variant>
+    <variant Dvariant="LPC1768FET100">
+        <processor Dcore="Cortex-M3" Dclock="120000000"/>
+    </variant>
+</device>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let device: crate::family::Device = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(device.device_name, "LPC1768");
+        assert_eq!(device.variants.len(), 2);
+        assert_eq!(device.variants[0].variant_name, "LPC1768FBD100");
+        assert_eq!(device.variants[0].memory.len(), 1);
+        assert_eq!(device.variants[1].variant_name, "LPC1768FET100");
+        assert_eq!(device.variants[1].processor[0].dclock, Some(120000000));
+    }
+
+    #[test]
+    fn parse_subfamily_with_devices() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<subFamily DsubFamily="LPC176x">
+    <processor Dcore="Cortex-M3"/>
+    <device Dname="LPC1768">
+        <processor Dclock="100000000"/>
+        <memory name="FLASH" start="0x00000000" size="0x80000" access="rx"/>
+    </device>
+    <device Dname="LPC1766">
+        <processor Dclock="100000000"/>
+        <memory name="FLASH" start="0x00000000" size="0x40000" access="rx"/>
+    </device>
+</subFamily>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let sf: crate::family::SubFamily = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(sf.sub_family_name, "LPC176x");
+        assert_eq!(sf.processor.len(), 1);
+        assert_eq!(sf.processor[0].dcore, Some("Cortex-M3".to_string()));
+        assert_eq!(sf.devices.len(), 2);
+        assert_eq!(sf.devices[0].device_name, "LPC1768");
+        assert_eq!(sf.devices[0].memory[0].size, "0x80000");
+        assert_eq!(sf.devices[1].device_name, "LPC1766");
+    }
+
+    #[test]
+    fn parse_family_with_direct_devices() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<family Dfamily="PIC32CM-PL" Dvendor="Microchip:3">
+    <debugvars configfile="debug.dbgconf" version="1.0.0">__var myVar = 0x1;</debugvars>
+    <sequences/>
+    <device Dname="PIC32CM1216PL10028">
+        <processor Dcore="Cortex-M0+" Dclock="24000000"/>
+        <debugconfig default="swd" clock="2000000"/>
+        <compile header="pic32cm1216pl/include/pic32c.h" define="__PIC32CM1216PL10028__"/>
+        <memory name="FLASH" start="0x0C000000" size="0x20000" access="rx"/>
+        <algorithm name="keil/Flash/PIC32CM-PL_FLASH_128.FLM" start="0x0C000000" size="0x20000"
+                   RAMstart="0x20000000" RAMsize="0x2000" default="1" style="Keil"/>
+    </device>
+    <device Dname="PIC32CM2532PL10028">
+        <processor Dcore="Cortex-M0+" Dclock="24000000"/>
+        <memory name="FLASH" start="0x0C000000" size="0x40000" access="rx"/>
+    </device>
+</family>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(family.device_family, "PIC32CM-PL");
+        assert_eq!(family.devices.len(), 2);
+        assert_eq!(family.sub_families.len(), 0);
+
+        let d0 = &family.devices[0];
+        assert_eq!(d0.device_name, "PIC32CM1216PL10028");
+        assert_eq!(d0.processor[0].dcore, Some("Cortex-M0+".to_string()));
+        assert_eq!(d0.debugconfig.as_ref().unwrap().default, Some("swd".to_string()));
+        assert_eq!(d0.compile[0].header, Some("pic32cm1216pl/include/pic32c.h".to_string()));
+        assert_eq!(d0.memory[0].name, Some("FLASH".to_string()));
+        assert_eq!(d0.algorithm[0].name, "keil/Flash/PIC32CM-PL_FLASH_128.FLM");
+        assert_eq!(d0.algorithm[0].default, Some(true));
+
+        let d1 = &family.devices[1];
+        assert_eq!(d1.device_name, "PIC32CM2532PL10028");
+        assert_eq!(d1.memory[0].size, "0x40000");
     }
 }
