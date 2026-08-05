@@ -169,6 +169,18 @@ impl<'a> Package<'a> {
         for family in &mut package.devices.families {
             family.debugvars.parse_debugvars();
             family.sequences.parse_sequences();
+            for sf in &mut family.sub_families {
+                sf.debugvars.parse_debugvars();
+                sf.sequences.parse_sequences();
+                for device in &mut sf.devices {
+                    device.debugvars.parse_debugvars();
+                    device.sequences.parse_sequences();
+                }
+            }
+            for device in &mut family.devices {
+                device.debugvars.parse_debugvars();
+                device.sequences.parse_sequences();
+            }
         }
 
         // Return the data

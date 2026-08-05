@@ -1,144 +1,8 @@
-//! Contains types representing debug sequences
+//! PDSC pack-level types (description, releases, devices, etc.)
 
-use std::fmt::Debug;
-use roxmltree::Document;
 use serde::{Deserialize, Serialize};
 
-use crate::requirements::Requirements;
-use crate::generators::Generators;
-use crate::boards::Boards;
-use crate::parts::Parts;
-use crate::taxonomy::Taxonomy;
-use crate::part_taxonomy::PartTaxonomy;
-use crate::apis::Apis;
-use crate::components::Components;
-use crate::conditions::Conditions;
-use crate::csolution::Csolution;
-use crate::examples::Examples;
 use crate::family::Family;
-
-#[derive(Debug, PartialEq, Deserialize)]
-/// Represents [PDSC Package](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_package_pg.html)
-/// which is the root element of the PDSC file
-#[serde(rename_all = "camelCase")]
-pub struct Package<'a> {
-    /// Name of the software pack
-    pub name: String,
-
-    /// Name of the software pack supplier/vendor
-    pub vendor: String,
-
-    /// PDSC schema version; valid values defined by [PDSC schema versioning](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
-    pub schema_version: Option<String>,
-
-    /// Restricts pack to a specific core; valid values: [DcoreEnum](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
-    #[serde(rename = "Dcore")]
-    pub d_core: Option<String>,
-
-    /// Restricts pack to a specific silicon vendor; valid values: [DeviceVendorEnum](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
-    #[serde(rename = "Dvendor")]
-    pub d_vendor: Option<String>,
-
-    /// Restricts pack to a specific device name; wildcards allowed
-    #[serde(rename = "Dname")]
-    pub d_name: Option<String>,
-
-    /// Restricts pack to a specific toolchain; valid values: [CompilerEnumType](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
-    #[serde(rename = "Tcompiler")]
-    pub t_compiler: Option<String>,
-
-    /// Brief description of the sofware pack
-    pub description: Description,
-
-    /// Export Control Classification Numbers for the EU and US
-    pub eccn: Option<Eccn>,
-
-    /// URL or file URI of the sotware pack
-    pub url: String,
-
-    /// URL or e-main for users to get support for the Pack content
-    pub support_contact: Option<String>,
-
-    /// Path to the license document of the Pack
-    pub license: Option<String>,
-
-    /// Listing containing the collection of license fils
-    pub license_sets: Option<LicenseSets>,
-
-    /// A pack that has dominate attribute overrules other packs
-    pub dominate: Option<Dominate>,
-
-    /// Specifies other CMSIS-Packs, programming languages, and compilers required by pack components
-    pub requirements: Option<Requirements>,
-
-    // The deprecated `create` element is intentionally not modelled.
-
-    /// HTTPS URL of a public repository tat the pack originates from
-    pub repository: Option<Repository>,
-
-    /// Version release history with brief information about a software pack
-    pub releases: Releases,
-
-    /// Section describing one or more changelog files
-    pub changelogs: Option<Changelogs>,
-
-    /// Keywords that might be used to find a software pack
-    pub keywords: Option<Keywords>,
-
-    /// Grouping elements for environments information.
-    pub environments: Option<Environments>,
-
-    /// Specifies generator tools that have been used to generate components
-    pub generators: Option<Generators>,
-
-    /// Development boards described in this pack
-    pub boards: Option<Boards>,
-
-    /// Hardware parts described in this pack
-    pub parts: Option<Parts>,
-
-    /// Component class and group taxonomy for this pack
-    pub taxonomy: Option<Taxonomy>,
-
-    /// Hardware part class and group taxonomy for this pack
-    #[serde(rename = "part-taxonomy")]
-    pub part_taxonomy: Option<PartTaxonomy>,
-
-    /// Application programming interfaces defined by this pack
-    pub apis: Option<Apis>,
-
-    #[serde(borrow)]
-    /// The device family, the devices, and variants
-    pub devices: Devices<'a>,
-
-    /// Conditions defined for use throughout this pack
-    pub conditions: Option<Conditions>,
-
-    /// Example projects included in this pack
-    pub examples: Option<Examples>,
-
-    /// Software layers and project templates for csolution-based projects
-    pub csolution: Option<Csolution>,
-
-    /// Components published by this pack
-    pub components: Option<Components>,
-}
-
-impl<'a> Package<'a> {
-    pub fn new(document: &'a Document) -> Self {
-        // Parse the content
-        let mut package: Package = serde_roxmltree::from_doc(&document).unwrap();
-
-        // Parse the "wild" string conents into structured data
-        for family in &mut package.devices.families {
-            family.debugvars.parse_debugvars();
-            family.sequences.parse_sequences();
-        }
-
-        // Return the data
-        package
-    }
-}
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 /// Represents the [PDSC Descrpiton](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_package_description.html)
@@ -300,10 +164,9 @@ pub struct Devices<'a> {
 mod tests {
     use std::default;
 
-use roxmltree::Document;
-use serde_roxmltree::RawNode;
+    use roxmltree::Document;
 
-use crate::{debug_access::{Assignment, DebugFunction, Expression, Statement::{self}}, pdsc::{Changelog, Changelogs, Devices, Eccn, License, LicenseSet, Release, Releases, Repository}};
+    use crate::pdsc::{Changelog, Changelogs, Devices, Eccn, License, LicenseSet, Release, Releases, Repository};
     #[test]
     fn parse_eccn() {
         let xml_str =

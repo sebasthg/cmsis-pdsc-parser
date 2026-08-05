@@ -4,7 +4,7 @@ use log::info;
 
 use cmsis_pdsc_parser::{Package, pdsc::{License, LicenseSet, self}, requirements::{self, PackagesList}};
 
-const PDSC_PATH: &str = "Microchip.PIC32CM-PL_DFP.pdsc";
+const PDSC_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/PIC32CM_PL/Microchip.PIC32CM-PL_DFP.pdsc");
 
 const EXPECTED_DEBUGVARS: [(&str, u64); 26] = [
     ("AIRCR_Addr", 0xE000ED0C),
@@ -158,6 +158,8 @@ fn main() {
     let family = &pdsc.devices.families[0];
     assert_eq!(&family.device_family, "PIC32CM-PL");
     assert_eq!(&family.vendor, "Microchip:3");
+    assert_eq!(family.devices.len(), 11, "expected 11 devices directly under family");
+    assert_eq!(family.sub_families.len(), 0, "expected no subFamily elements");
 
     // Validate debugvars
     let debugvars = &family.debugvars;
