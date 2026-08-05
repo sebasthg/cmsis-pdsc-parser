@@ -161,6 +161,12 @@ pub struct Package<'a> {
 }
 
 impl<'a> Package<'a> {
+    /// Parses a PDSC XML document into a [`Package`].
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::SerdeRoxmltree`] if the document cannot be deserialized, or
+    /// [`Error::Family`]/[`Error::Debug`] if sequence or statement parsing fails.
     pub fn new(document: &'a roxmltree::Document) -> Result<Self, Error> {
         // Parse the content
         let mut package: Package = serde_roxmltree::from_doc(document)?;

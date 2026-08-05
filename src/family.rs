@@ -203,8 +203,11 @@ impl Debugvars {
 
     /// Parses a single variable declaration entry.
     ///
-    /// Returns `Ok((name, value))` for a valid `__var name = value;` declaration,
-    /// or `Err(FamilyParseError::MalformedDebugvar(...))` for any malformed input.
+    /// Returns `Ok((name, value))` for a valid `__var name = value;` declaration.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`FamilyParseError::MalformedDebugvar`] if the line is not a valid `__var` declaration.
     pub fn parse_single_debugvar(line: &str) -> Result<(String, u64), FamilyParseError> {
         trace!("Parsing debugvar line: {line}");
 
@@ -816,6 +819,10 @@ pub struct Sequences<'a> {
 
 impl Sequences<'_> {
     /// Iterates through the raw nodes and parses the sequences
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::Error::Family`] if any raw sequence node fails to parse.
     pub fn parse_raw_nodes_content(&self) -> Result<Vec<Sequence>, crate::Error> {
         self.raw_nodes.iter().map(|node| {
             node.0.try_into().inspect_err(|e| {
@@ -825,6 +832,10 @@ impl Sequences<'_> {
     }
 
     /// Parses the raw XML Sequence nodes and stores the parsed sequences in [Self::sequences]
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::Error::Family`] if any sequence node fails to parse; see [`Self::parse_raw_nodes_content`].
     pub fn parse_sequences(&mut self) -> Result<(), crate::Error> {
         let sequences = Self::parse_raw_nodes_content(self)?;
 
@@ -1041,13 +1052,17 @@ pub struct SequenceBlock {
     /// Sequence block content
     pub content: String,
 
-    #[serde(skip_serializing)]
+    #[serde(skip_deserializing)]
     /// [Statement]s resulting from the parsing of [Self::content]
     pub statements: Vec<Statement>
 }
 
 impl SequenceBlock {
     /// Parses [Self::content] into a list of [Statement]s
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::Error::Debug`] if any statement line fails to parse.
     pub fn parse_statements_content(&self) -> Result<Vec<Statement>, crate::Error> {
         self.content.lines()
             .flat_map(|line| line.split(';'))
@@ -1058,6 +1073,10 @@ impl SequenceBlock {
     }
 
     /// Parses the block content and stores the result in [Self::statements]
+    ///
+    /// # Errors
+    ///
+    /// Returns [`crate::Error::Debug`] if any statement line fails to parse; see [`Self::parse_statements_content`].
     pub fn parse_statements(&mut self) -> Result<(), crate::Error> {
         self.statements = self.parse_statements_content()?;
 
@@ -1076,7 +1095,7 @@ mod tests {
     use roxmltree::Document;
     use serde_roxmltree::RawNode;
 
-    use crate::{debug_access::{Assignment, DebugFunction, Expression, Statement::{self}}, pdsc::{Eccn, License, LicenseSet, Release, Releases, Repository}, family::{FamilyParseError, Sequence, SequenceBlock, SequenceControl, SequenceElement}};
+    use crate::{debug_access::{Assignment, DebugFunction, Expression, Statement::{self}}, family::{FamilyParseError, Sequence, SequenceBlock, SequenceControl, SequenceElement}};
 
     #[test]
     fn basic_sequence() {
@@ -1326,7 +1345,9 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
         let document = Document::parse(xml_str).unwrap();
         let node = document.root_element();
         let result: Result<Sequence, _> = node.try_into();
-        assert_eq!(result.unwrap_err(), FamilyParseError::MissingAttribute("name".to_string()));
+        let err = result.unwrap_err();
+        let crate::Error::Family(inner) = err else { panic!("wrong error type") };
+        assert_eq!(inner, FamilyParseError::MissingAttribute("name".to_string()));
     }
 
     #[test]
@@ -1336,7 +1357,9 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
         let document = Document::parse(xml_str).unwrap();
         let node = document.root_element();
         let result: Result<SequenceElement, _> = node.try_into();
-        assert_eq!(result.unwrap_err(), FamilyParseError::UnknownElementType("unknown".to_string()));
+        let err = result.unwrap_err();
+        let crate::Error::Family(inner) = err else { panic!("wrong error type") };
+        assert_eq!(inner, FamilyParseError::UnknownElementType("unknown".to_string()));
     }
 
     #[test]

@@ -83,6 +83,8 @@ impl TryFrom<String> for Statement {
                 Self::Expression(expression)
             },
             Some((variable, expression)) => {
+                let variable = variable.trim();
+                let expression = expression.trim();
                 variable
                     .strip_prefix("__var")
                     .map_or_else(|| {
@@ -90,6 +92,7 @@ impl TryFrom<String> for Statement {
                         Ok::<Self, Self::Error>(Self::Assignment(
                             Assignment { variable: variable.to_string(), expression }
                         ))}, |variable| {
+                        let variable = variable.trim();
                         let expression: Expression = expression.try_into()?;
                         Ok::<Self, Self::Error>(Self::Definition(
                             Assignment { variable: variable.to_string(), expression }
@@ -631,7 +634,7 @@ mod tests {
     fn parse_comment() {
         let line = "// This is a comment!".to_string();
 
-        let statement: Statement = line.into();
+        let statement: Statement = line.try_into().unwrap();
 
         assert_eq!(statement, Statement::Comment("// This is a comment!".to_string()));
     }
@@ -641,8 +644,8 @@ mod tests {
         let line1 = "Read32(0x10)".to_string();
         let line2 = "Read32(0x10);".to_string();
 
-        let statement1: Statement = line1.into();
-        let statement2: Statement = line2.into();
+        let statement1: Statement = line1.try_into().unwrap();
+        let statement2: Statement = line2.try_into().unwrap();
 
         assert_eq!(statement1, statement2);
     }
@@ -651,7 +654,7 @@ mod tests {
     fn parse_expression_normal() {
         let line = "addr + offset;".to_string();
 
-        let statement: Statement = line.into();
+        let statement: Statement = line.try_into().unwrap();
 
         assert_eq!(statement, Statement::Expression(
             Expression::Normal("addr + offset".to_string())
@@ -662,7 +665,7 @@ mod tests {
     fn parse_expression_normal_variable() {
         let line = "doIfBlock".to_string();
 
-        let statement: Statement = line.into();
+        let statement: Statement = line.try_into().unwrap();
 
         assert_eq!(statement, Statement::Expression(
             Expression::Normal("doIfBlock".to_string())
@@ -673,7 +676,7 @@ mod tests {
     fn parse_expression_conditional() {
         let line = "(x < y) ? a : b".to_string();
 
-        let statement: Statement = line.into();
+        let statement: Statement = line.try_into().unwrap();
 
         assert_eq!(statement, Statement::Expression(
             Expression::Conditional(Box::new(Conditional {
@@ -688,7 +691,7 @@ mod tests {
     fn parse_assignment_comparison() {
         let line = "thisValue = (readTheCoolRegister(0x248) == 5);".to_string();
 
-        let statement: Statement = line.into();
+        let statement: Statement = line.try_into().unwrap();
 
         assert_eq!(statement, Statement::Assignment(
             Assignment {
@@ -702,7 +705,7 @@ mod tests {
     fn parse_assignment() {
         let line = "variable = expression;".to_string();
 
-        let statement: Statement = line.into();
+        let statement: Statement = line.try_into().unwrap();
 
         assert_eq!(statement, Statement::Assignment(
             Assignment {
@@ -716,7 +719,7 @@ mod tests {
     fn parse_definition() {
         let line = "__var variable = 0;".to_string();
 
-        let statement: Statement = line.into();
+        let statement: Statement = line.try_into().unwrap();
 
         assert_eq!(statement, Statement::Definition(
             Assignment {
@@ -730,7 +733,7 @@ mod tests {
     fn parse_function_call_single_arg() {
         let line = "Read32(0x40000000);".to_string();
 
-        let statement: Statement = line.into();
+        let statement: Statement = line.try_into().unwrap();
 
         assert_eq!(statement, Statement::Expression(Expression::FunctionCall(Box::new(
             DebugFunction::Read32 { addr: Expression::Normal("0x40000000".to_string()) }
@@ -741,7 +744,7 @@ mod tests {
     fn parse_function_call_two_args() {
         let line = "Write32(addr, val);".to_string();
 
-        let statement: Statement = line.into();
+        let statement: Statement = line.try_into().unwrap();
 
         assert_eq!(statement, Statement::Expression(Expression::FunctionCall(Box::new(
             DebugFunction::Write32 {
@@ -755,7 +758,7 @@ mod tests {
     fn parse_function_call_string_arg() {
         let line = "Sequence(\"ResetAndHalt\");".to_string();
 
-        let statement: Statement = line.into();
+        let statement: Statement = line.try_into().unwrap();
 
         assert_eq!(statement, Statement::Expression(Expression::FunctionCall(Box::new(
             DebugFunction::Sequence { name: Expression::Normal("\"ResetAndHalt\"".to_string()) }
@@ -766,7 +769,7 @@ mod tests {
     fn parse_function_call_three_args() {
         let line = "DAP_SWJ_Pins(pinout, pinselect, pinwait);".to_string();
 
-        let statement: Statement = line.into();
+        let statement: Statement = line.try_into().unwrap();
 
         assert_eq!(statement, Statement::Expression(Expression::FunctionCall(Box::new(
             DebugFunction::DapSwjPins {
@@ -781,7 +784,7 @@ mod tests {
     fn parse_function_call_variadic() {
         let line = "Message(1, \"debug message\");".to_string();
 
-        let statement: Statement = line.into();
+        let statement: Statement = line.try_into().unwrap();
 
         assert_eq!(statement, Statement::Expression(Expression::FunctionCall(Box::new(
             DebugFunction::Message {
@@ -797,7 +800,7 @@ mod tests {
         // Read32(base) is an argument to Write32 — split_args must not split on the inner comma
         let line = "Write32(addr, Read32(base));".to_string();
 
-        let statement: Statement = line.into();
+        let statement: Statement = line.try_into().unwrap();
 
         assert_eq!(statement, Statement::Expression(Expression::FunctionCall(Box::new(
             DebugFunction::Write32 {
@@ -812,7 +815,9 @@ mod tests {
     #[test]
     #[should_panic(expected = "unknown statement: GetBase")]
     fn unknown_function_panics() {
-        let _: Expression = "GetBase()".into();
+        if let Err(e) = Expression::try_from("GetBase()") {
+            panic!("{e}");
+        }
     }
 
     #[test]
@@ -823,7 +828,6 @@ mod tests {
 
     #[test]
     fn unknown_function_returns_unknown_statement() {
-        use crate::debug_access::Expression;
         let result = DebugFunction::try_from(("GetBase".to_string(), vec![]));
         assert_eq!(result.unwrap_err(), DebugAccessParseError::UnknownStatement("GetBase".to_string()));
     }

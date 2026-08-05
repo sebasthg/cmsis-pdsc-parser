@@ -164,9 +164,7 @@ pub struct Devices<'a> {
 mod tests {
     use std::default;
 
-    use roxmltree::Document;
-
-    use crate::pdsc::{Changelog, Changelogs, Devices, Eccn, License, LicenseSet, Release, Releases, Repository};
+    use crate::pdsc::{Changelogs, Devices, Eccn, License, LicenseSet, Release, Releases, Repository};
     #[test]
     fn parse_eccn() {
         let xml_str =
