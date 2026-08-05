@@ -260,9 +260,8 @@ impl TryFrom<&str> for Conditional {
                 WalkerProgress::Colon => {
                     if c == ';' {
                         break;
-                    } else {
-                        falsey_str.push(c);
                     }
+                    falsey_str.push(c);
                 }
             }
         }
