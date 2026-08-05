@@ -2,13 +2,27 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::debug_access::Statement::Comment;
+
 /// Parse error for debug access XML elements.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 pub enum DebugAccessParseError {
     /// A required attribute or structural element was absent.
     MissingAttribute(String),
     /// An unrecognised statement or function name was encountered.
     UnknownStatement(String),
+}
+
+impl Default for DebugAccessParseError {
+    fn default() -> Self {
+        Self::UnknownStatement(String::default())
+    }
+}
+
+impl From<DebugAccessParseError> for crate::Error {
+    fn from(value: DebugAccessParseError) -> Self {
+        Self::Debug(value)
+    }
 }
 
 impl std::fmt::Display for DebugAccessParseError {
@@ -22,7 +36,7 @@ impl std::fmt::Display for DebugAccessParseError {
 
 impl std::error::Error for DebugAccessParseError {}
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 /// Types representing the valid [PDSC Debug Access](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#block_DebugSyntaxRules)
 /// statements.
 pub enum Statement {
@@ -39,63 +53,63 @@ pub enum Statement {
     Comment(String),
 }
 
-impl From<String> for Statement {
-    fn from(value: String) -> Self {
+impl Default for Statement {
+    fn default() -> Self {
+        Comment(String::default())
+    }
+}
+
+impl TryFrom<String> for Statement {
+    type Error = crate::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
         // If present trim any whitespace
         let input = value.trim().to_string();
 
         // Check if it is a comment
         if input.starts_with("//") {
-            return Statement::Comment(input);
+            return Ok(Self::Comment(input));
         }
 
         // If present remove the semicolon
         let input = input.strip_suffix(";").unwrap_or(&input).to_string();
 
         // Check if this is an assignment or declaration
-        let split: Vec<&str> = input.split_inclusive("=").collect();
-        match split.len() {
-            0 => unreachable!("String split should never return 0 elements"),
-            1 => {
+        let split: Option<(&str, &str)> = input.split_once('=');
+        let result: Self = match split {
+            None => {
                 // No '=', must be a standalone expression
-                let expression: Expression = input.into();
+                let expression: Expression = input.try_into()?;
                 Self::Expression(expression)
             },
-            _ => {
-                let variable = split[0]
-                    .strip_suffix('=')
-                    // Safety: This should be unreachable
-                    .expect("Missing '=' after inclusive split on '='")
-                    .trim();
-
-                let expression: Expression = split[1..]
-                    .iter()
-                    .copied()
-                    .collect::<String>()
-                    .trim()
-                    .into();
-
-                match variable.strip_prefix("__var ") {
-                    Some(variable) => Statement::Definition(
-                        Assignment { variable: variable.to_string(), expression }
-                    ),
-                    None => Statement::Assignment(
-                        Assignment { variable: variable.to_string(), expression }
-                    )
-                }
+            Some((variable, expression)) => {
+                variable
+                    .strip_prefix("__var")
+                    .map_or_else(|| {
+                        let expression: Expression = expression.try_into()?;
+                        Ok::<Self, Self::Error>(Self::Assignment(
+                            Assignment { variable: variable.to_string(), expression }
+                        ))}, |variable| {
+                        let expression: Expression = expression.try_into()?;
+                        Ok::<Self, Self::Error>(Self::Definition(
+                            Assignment { variable: variable.to_string(), expression }
+                        ))}
+                    )?
             }
-        }
+        };
+
+        Ok(result)
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
 /// A variable assignment, e.g. `variable = expression;`
 pub struct Assignment {
     pub variable: String,
     pub expression: Expression
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 /// A variable representing a [PDSC Expression](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#block_ExpressionType)
 pub enum Expression {
     /// An arithmetic, bitwise, or comparison expression, e.g. `2 + 2`, `reg & 0xFF`, `x == 1`, or a bare variable reference
@@ -114,33 +128,45 @@ pub enum Expression {
     FunctionCall(Box<DebugFunction>),
 }
 
-impl From<String> for Expression {
-    fn from(value: String) -> Self {
-        Self::from(value.as_str())
+impl Default for Expression {
+    fn default() -> Self {
+        Self::Normal(String::default())
     }
 }
 
-impl From<&str> for Expression {
-    fn from(value: &str) -> Self {
+impl TryFrom<String> for Expression {
+    type Error = crate::Error;
+
+    fn try_from(value: String) -> Result<Self, Self::Error> {
+        Ok(
+            Self::try_from(value.as_str())?
+        )
+    }
+}
+
+impl TryFrom<&str> for Expression {
+    type Error = DebugAccessParseError;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
         if let Ok(condition) = Conditional::try_from(value) {
-            return Self::Conditional(Box::new(condition));
+            return Ok(Self::Conditional(Box::new(condition)));
         }
 
         if let Some((name, args_str)) = detect_function_call(value) {
-            let args: Vec<Expression> = split_args(args_str)
+            let args: Vec<Self> = split_args(args_str)
                 .into_iter()
-                .map(Expression::from)
-                .collect();
-            let func = DebugFunction::try_from((name.to_string(), args))
-                .unwrap_or_else(|e| panic!("{}", e));
-            return Expression::FunctionCall(Box::new(func));
+                .map(Self::try_from)
+                .collect::<Result<Vec<_>, _>>()?;
+            let func = DebugFunction::try_from((name.to_string(), args))?;
+
+            return Ok(Self::FunctionCall(Box::new(func)));
         }
 
-        Expression::Normal(value.to_string())
+        Ok(Self::Normal(value.to_string()))
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
 /// An expression representing an inline if statement, e.g. `(x < y) ? a : b`
 ///
 /// # Note
@@ -184,8 +210,9 @@ impl TryFrom<&str> for Conditional {
     fn try_from(value: &str) -> Result<Self, Self::Error> {
 
         // Create the sates for the state machine
-        #[derive(Debug, PartialEq)]
+        #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
         enum WalkerProgress {
+            #[default]
             None,
             ParenOpen,
             ParenClose,
@@ -213,11 +240,11 @@ impl TryFrom<&str> for Conditional {
         let walk_ok = progress == WalkerProgress::Colon && !falsey_str.is_empty();
 
         if walk_ok {
-            let condition: Expression = condition_str.trim().into();
-            let true_value: Expression = truthy_str.trim().into();
-            let false_value: Expression = falsey_str.trim().into();
+            let condition: Expression = condition_str.trim().try_into()?;
+            let true_value: Expression = truthy_str.trim().try_into()?;
+            let false_value: Expression = falsey_str.trim().try_into()?;
 
-            Ok(Conditional { condition, true_value, false_value })
+            Ok(Self { condition, true_value, false_value })
         } else {
             Err(DebugAccessParseError::MissingAttribute(
                 "conditional syntax: expected '(condition) ? truthy : falsy'".to_string()
@@ -226,8 +253,9 @@ impl TryFrom<&str> for Conditional {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 /// A predefined [PDSC debug access function](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/debug_description.html#DebugFunctions).
+///
 /// Unknown function names are a parse error — if the spec adds new functions they will surface as panics.
 pub enum DebugFunction {
     // Memory access
@@ -319,185 +347,193 @@ pub enum DebugFunction {
     LoadDebugInfo   { file: Expression },
 }
 
+impl Default for DebugFunction {
+    fn default() -> Self {
+        Self::DapDelay { delay: Expression::Normal("0".to_string()) }
+    }
+}
+
 impl TryFrom<(String, Vec<Expression>)> for DebugFunction {
     type Error = DebugAccessParseError;
 
     /// Parses a debug access function by name and argument list.
     ///
     /// Returns [Err] if the function name is not in the CMSIS-Pack spec or the argument count is wrong.
+    #[allow(clippy::too_many_lines)]
     fn try_from((name, args): (String, Vec<Expression>)) -> Result<Self, Self::Error> {
         match name.as_str() {
             // Memory — 1 arg (addr)
             "Read8"  => match <[Expression; 1]>::try_from(args) {
-                Ok([addr]) => Ok(DebugFunction::Read8  { addr }),
+                Ok([addr]) => Ok(Self::Read8  { addr }),
                 Err(v)     => Err(DebugAccessParseError::MissingAttribute(format!("Read8 expects 1 argument, got {}", v.len()))),
             },
             "Read16" => match <[Expression; 1]>::try_from(args) {
-                Ok([addr]) => Ok(DebugFunction::Read16 { addr }),
+                Ok([addr]) => Ok(Self::Read16 { addr }),
                 Err(v)     => Err(DebugAccessParseError::MissingAttribute(format!("Read16 expects 1 argument, got {}", v.len()))),
             },
             "Read32" => match <[Expression; 1]>::try_from(args) {
-                Ok([addr]) => Ok(DebugFunction::Read32 { addr }),
+                Ok([addr]) => Ok(Self::Read32 { addr }),
                 Err(v)     => Err(DebugAccessParseError::MissingAttribute(format!("Read32 expects 1 argument, got {}", v.len()))),
             },
             "Read64" => match <[Expression; 1]>::try_from(args) {
-                Ok([addr]) => Ok(DebugFunction::Read64 { addr }),
+                Ok([addr]) => Ok(Self::Read64 { addr }),
                 Err(v)     => Err(DebugAccessParseError::MissingAttribute(format!("Read64 expects 1 argument, got {}", v.len()))),
             },
             // Memory — 2 args (addr, val)
             "Write8"  => match <[Expression; 2]>::try_from(args) {
-                Ok([addr, val]) => Ok(DebugFunction::Write8  { addr, val }),
+                Ok([addr, val]) => Ok(Self::Write8  { addr, val }),
                 Err(v)          => Err(DebugAccessParseError::MissingAttribute(format!("Write8 expects 2 arguments, got {}", v.len()))),
             },
             "Write16" => match <[Expression; 2]>::try_from(args) {
-                Ok([addr, val]) => Ok(DebugFunction::Write16 { addr, val }),
+                Ok([addr, val]) => Ok(Self::Write16 { addr, val }),
                 Err(v)          => Err(DebugAccessParseError::MissingAttribute(format!("Write16 expects 2 arguments, got {}", v.len()))),
             },
             "Write32" => match <[Expression; 2]>::try_from(args) {
-                Ok([addr, val]) => Ok(DebugFunction::Write32 { addr, val }),
+                Ok([addr, val]) => Ok(Self::Write32 { addr, val }),
                 Err(v)          => Err(DebugAccessParseError::MissingAttribute(format!("Write32 expects 2 arguments, got {}", v.len()))),
             },
             "Write64" => match <[Expression; 2]>::try_from(args) {
-                Ok([addr, val]) => Ok(DebugFunction::Write64 { addr, val }),
+                Ok([addr, val]) => Ok(Self::Write64 { addr, val }),
                 Err(v)          => Err(DebugAccessParseError::MissingAttribute(format!("Write64 expects 2 arguments, got {}", v.len()))),
             },
             // Register — 1 arg (addr)
             "ReadAP" => match <[Expression; 1]>::try_from(args) {
-                Ok([addr]) => Ok(DebugFunction::ReadAP { addr }),
+                Ok([addr]) => Ok(Self::ReadAP { addr }),
                 Err(v)     => Err(DebugAccessParseError::MissingAttribute(format!("ReadAP expects 1 argument, got {}", v.len()))),
             },
             "ReadDP" => match <[Expression; 1]>::try_from(args) {
-                Ok([addr]) => Ok(DebugFunction::ReadDP { addr }),
+                Ok([addr]) => Ok(Self::ReadDP { addr }),
                 Err(v)     => Err(DebugAccessParseError::MissingAttribute(format!("ReadDP expects 1 argument, got {}", v.len()))),
             },
             "ReadAccessAP" => match <[Expression; 1]>::try_from(args) {
-                Ok([addr]) => Ok(DebugFunction::ReadAccessAP { addr }),
+                Ok([addr]) => Ok(Self::ReadAccessAP { addr }),
                 Err(v)     => Err(DebugAccessParseError::MissingAttribute(format!("ReadAccessAP expects 1 argument, got {}", v.len()))),
             },
             // Register — 2 args (addr, val)
             "WriteAP" => match <[Expression; 2]>::try_from(args) {
-                Ok([addr, val]) => Ok(DebugFunction::WriteAP { addr, val }),
+                Ok([addr, val]) => Ok(Self::WriteAP { addr, val }),
                 Err(v)          => Err(DebugAccessParseError::MissingAttribute(format!("WriteAP expects 2 arguments, got {}", v.len()))),
             },
             "WriteDP" => match <[Expression; 2]>::try_from(args) {
-                Ok([addr, val]) => Ok(DebugFunction::WriteDP { addr, val }),
+                Ok([addr, val]) => Ok(Self::WriteDP { addr, val }),
                 Err(v)          => Err(DebugAccessParseError::MissingAttribute(format!("WriteDP expects 2 arguments, got {}", v.len()))),
             },
             "WriteAccessAP" => match <[Expression; 2]>::try_from(args) {
-                Ok([addr, val]) => Ok(DebugFunction::WriteAccessAP { addr, val }),
+                Ok([addr, val]) => Ok(Self::WriteAccessAP { addr, val }),
                 Err(v)          => Err(DebugAccessParseError::MissingAttribute(format!("WriteAccessAP expects 2 arguments, got {}", v.len()))),
             },
             // Debug port — 1 arg
             "DAP_Delay" => match <[Expression; 1]>::try_from(args) {
-                Ok([delay]) => Ok(DebugFunction::DapDelay { delay }),
+                Ok([delay]) => Ok(Self::DapDelay { delay }),
                 Err(v)      => Err(DebugAccessParseError::MissingAttribute(format!("DAP_Delay expects 1 argument, got {}", v.len()))),
             },
             "DAP_WriteABORT" => match <[Expression; 1]>::try_from(args) {
-                Ok([value]) => Ok(DebugFunction::DapWriteAbort { value }),
+                Ok([value]) => Ok(Self::DapWriteAbort { value }),
                 Err(v)      => Err(DebugAccessParseError::MissingAttribute(format!("DAP_WriteABORT expects 1 argument, got {}", v.len()))),
             },
             "DAP_SWJ_Clock" => match <[Expression; 1]>::try_from(args) {
-                Ok([val]) => Ok(DebugFunction::DapSwjClock { val }),
+                Ok([val]) => Ok(Self::DapSwjClock { val }),
                 Err(v)    => Err(DebugAccessParseError::MissingAttribute(format!("DAP_SWJ_Clock expects 1 argument, got {}", v.len()))),
             },
             // Debug port — 2 args
             "DAP_SWJ_Sequence" => match <[Expression; 2]>::try_from(args) {
-                Ok([cnt, val]) => Ok(DebugFunction::DapSwjSequence { cnt, val }),
+                Ok([cnt, val]) => Ok(Self::DapSwjSequence { cnt, val }),
                 Err(v)         => Err(DebugAccessParseError::MissingAttribute(format!("DAP_SWJ_Sequence expects 2 arguments, got {}", v.len()))),
             },
             // Debug port — 3 args
             "DAP_SWJ_Pins" => match <[Expression; 3]>::try_from(args) {
-                Ok([pinout, pinselect, pinwait]) => Ok(DebugFunction::DapSwjPins { pinout, pinselect, pinwait }),
+                Ok([pinout, pinselect, pinwait]) => Ok(Self::DapSwjPins { pinout, pinselect, pinwait }),
                 Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("DAP_SWJ_Pins expects 3 arguments, got {}", v.len()))),
             },
             "DAP_JTAG_Sequence" => match <[Expression; 3]>::try_from(args) {
-                Ok([cnt, tms, tdi]) => Ok(DebugFunction::DapJtagSequence { cnt, tms, tdi }),
+                Ok([cnt, tms, tdi]) => Ok(Self::DapJtagSequence { cnt, tms, tdi }),
                 Err(v)              => Err(DebugAccessParseError::MissingAttribute(format!("DAP_JTAG_Sequence expects 3 arguments, got {}", v.len()))),
             },
             // Sequence control — 1 arg
             "Sequence" => match <[Expression; 1]>::try_from(args) {
-                Ok([name]) => Ok(DebugFunction::Sequence { name }),
+                Ok([name]) => Ok(Self::Sequence { name }),
                 Err(v)     => Err(DebugAccessParseError::MissingAttribute(format!("Sequence expects 1 argument, got {}", v.len()))),
             },
             // Sequence control — 2 args
             "QueryValue" => match <[Expression; 2]>::try_from(args) {
-                Ok([message, default]) => Ok(DebugFunction::QueryValue { message, default }),
+                Ok([message, default]) => Ok(Self::QueryValue { message, default }),
                 Err(v)                 => Err(DebugAccessParseError::MissingAttribute(format!("QueryValue expects 2 arguments, got {}", v.len()))),
             },
             // Sequence control — 3 args
             "Query" => match <[Expression; 3]>::try_from(args) {
-                Ok([query_type, message, default]) => Ok(DebugFunction::Query { query_type, message, default }),
+                Ok([query_type, message, default]) => Ok(Self::Query { query_type, message, default }),
                 Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("Query expects 3 arguments, got {}", v.len()))),
             },
             // Sequence control — variadic (2+ args)
             "Message" => {
-                if args.len() < 2 {
-                    return Err(DebugAccessParseError::MissingAttribute(format!("Message expects at least 2 arguments, got {}", args.len())));
-                }
                 let mut it = args.into_iter();
-                let msg_type = it.next().unwrap();
-                let format_expr = it.next().unwrap();
-                Ok(DebugFunction::Message { msg_type, format: format_expr, args: it.collect() })
+                let msg_type = it.next().ok_or_else(|| DebugAccessParseError::MissingAttribute(
+                    "Message expects at least 2 arguments, got 0".to_string()
+                ))?;
+                let format_expr = it.next().ok_or_else(|| DebugAccessParseError::MissingAttribute(
+                    "Message expects at least 2 arguments, got 1".to_string()
+                ))?;
+                Ok(Self::Message { msg_type, format: format_expr, args: it.collect() })
             },
             // Flash — 3 args
             "FlashLoadAlgorithm" => match <[Expression; 3]>::try_from(args) {
-                Ok([algo_path, ram_start, ram_size]) => Ok(DebugFunction::FlashLoadAlgorithm { algo_path, ram_start, ram_size }),
+                Ok([algo_path, ram_start, ram_size]) => Ok(Self::FlashLoadAlgorithm { algo_path, ram_start, ram_size }),
                 Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("FlashLoadAlgorithm expects 3 arguments, got {}", v.len()))),
             },
             // Flash — 4 args
             "FlashWriteBuffer" => match <[Expression; 4]>::try_from(args) {
-                Ok([addr, offs, len, mode]) => Ok(DebugFunction::FlashWriteBuffer { addr, offs, len, mode }),
+                Ok([addr, offs, len, mode]) => Ok(Self::FlashWriteBuffer { addr, offs, len, mode }),
                 Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("FlashWriteBuffer expects 4 arguments, got {}", v.len()))),
             },
             // Buffer — 1 arg
             "BufferSize" => match <[Expression; 1]>::try_from(args) {
-                Ok([buff_id]) => Ok(DebugFunction::BufferSize { buff_id }),
+                Ok([buff_id]) => Ok(Self::BufferSize { buff_id }),
                 Err(v)        => Err(DebugAccessParseError::MissingAttribute(format!("BufferSize expects 1 argument, got {}", v.len()))),
             },
             // Buffer — 3 args
             "BufferGet" => match <[Expression; 3]>::try_from(args) {
-                Ok([buff_id, buff_offset, size]) => Ok(DebugFunction::BufferGet { buff_id, buff_offset, size }),
+                Ok([buff_id, buff_offset, size]) => Ok(Self::BufferGet { buff_id, buff_offset, size }),
                 Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("BufferGet expects 3 arguments, got {}", v.len()))),
             },
             // Buffer — 5 args
             "BufferSet" => match <[Expression; 5]>::try_from(args) {
-                Ok([buff_id, buff_offset, count, size, value]) => Ok(DebugFunction::BufferSet { buff_id, buff_offset, count, size, value }),
+                Ok([buff_id, buff_offset, count, size, value]) => Ok(Self::BufferSet { buff_id, buff_offset, count, size, value }),
                 Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("BufferSet expects 5 arguments, got {}", v.len()))),
             },
             "BufferRead" => match <[Expression; 5]>::try_from(args) {
-                Ok([buff_id, buff_offset, addr, length, mode]) => Ok(DebugFunction::BufferRead { buff_id, buff_offset, addr, length, mode }),
+                Ok([buff_id, buff_offset, addr, length, mode]) => Ok(Self::BufferRead { buff_id, buff_offset, addr, length, mode }),
                 Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("BufferRead expects 5 arguments, got {}", v.len()))),
             },
             "BufferWrite" => match <[Expression; 5]>::try_from(args) {
-                Ok([buff_id, buff_offset, addr, length, mode]) => Ok(DebugFunction::BufferWrite { buff_id, buff_offset, addr, length, mode }),
+                Ok([buff_id, buff_offset, addr, length, mode]) => Ok(Self::BufferWrite { buff_id, buff_offset, addr, length, mode }),
                 Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("BufferWrite expects 5 arguments, got {}", v.len()))),
             },
             // External — 1 arg
             "LoadDebugInfo" => match <[Expression; 1]>::try_from(args) {
-                Ok([file]) => Ok(DebugFunction::LoadDebugInfo { file }),
+                Ok([file]) => Ok(Self::LoadDebugInfo { file }),
                 Err(v)     => Err(DebugAccessParseError::MissingAttribute(format!("LoadDebugInfo expects 1 argument, got {}", v.len()))),
             },
             // External — 2 args
             "FilePathExists" => match <[Expression; 2]>::try_from(args) {
-                Ok([path, timeout]) => Ok(DebugFunction::FilePathExists { path, timeout }),
+                Ok([path, timeout]) => Ok(Self::FilePathExists { path, timeout }),
                 Err(v)              => Err(DebugAccessParseError::MissingAttribute(format!("FilePathExists expects 2 arguments, got {}", v.len()))),
             },
             // External — 4 args
             "RunApplication" => match <[Expression; 4]>::try_from(args) {
-                Ok([app_path, arguments, work_directory, timeout]) => Ok(DebugFunction::RunApplication { app_path, arguments, work_directory, timeout }),
+                Ok([app_path, arguments, work_directory, timeout]) => Ok(Self::RunApplication { app_path, arguments, work_directory, timeout }),
                 Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("RunApplication expects 4 arguments, got {}", v.len()))),
             },
             "RunPythonScript" => match <[Expression; 4]>::try_from(args) {
-                Ok([script_path, arguments, work_directory, timeout]) => Ok(DebugFunction::RunPythonScript { script_path, arguments, work_directory, timeout }),
+                Ok([script_path, arguments, work_directory, timeout]) => Ok(Self::RunPythonScript { script_path, arguments, work_directory, timeout }),
                 Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("RunPythonScript expects 4 arguments, got {}", v.len()))),
             },
             // External — 6 args
             "BufferStreamIn" => match <[Expression; 6]>::try_from(args) {
-                Ok([buff_id, buff_offset, length, path, mode, timeout]) => Ok(DebugFunction::BufferStreamIn { buff_id, buff_offset, length, path, mode, timeout }),
+                Ok([buff_id, buff_offset, length, path, mode, timeout]) => Ok(Self::BufferStreamIn { buff_id, buff_offset, length, path, mode, timeout }),
                 Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("BufferStreamIn expects 6 arguments, got {}", v.len()))),
             },
             "BufferStreamOut" => match <[Expression; 6]>::try_from(args) {
-                Ok([buff_id, buff_offset, length, dest_path, dest_mode, timeout]) => Ok(DebugFunction::BufferStreamOut { buff_id, buff_offset, length, dest_path, dest_mode, timeout }),
+                Ok([buff_id, buff_offset, length, dest_path, dest_mode, timeout]) => Ok(Self::BufferStreamOut { buff_id, buff_offset, length, dest_path, dest_mode, timeout }),
                 Err(v) => Err(DebugAccessParseError::MissingAttribute(format!("BufferStreamOut expects 6 arguments, got {}", v.len()))),
             },
             _ => Err(DebugAccessParseError::UnknownStatement(name)),
@@ -514,6 +550,10 @@ fn detect_function_call(s: &str) -> Option<(&str, &str)> {
     }
 
     let paren_pos = s.find('(')?;
+    #[allow(clippy::string_slice)]
+    // Safety:
+    //   This is known to have a lot of false positives, and is OK if
+    //   given a valid position, which `find` should return.
     let name = &s[..paren_pos];
 
     // Validate name is a non-empty identifier [A-Za-z_][A-Za-z0-9_]*
@@ -526,6 +566,16 @@ fn detect_function_call(s: &str) -> Option<(&str, &str)> {
         return None;
     }
 
+    #[allow(clippy::arithmetic_side_effects)]
+    // Safety:
+    //   While in theory `paren_pos + 1` could overflow it is
+    //   extremely unlikely, if so `s.len()` would also have
+    //   problems.
+    #[allow(clippy::string_slice)]
+    // Safety:
+    //   This is known to have a lot of false positives, and is OK if
+    //   given a valid position, which `find` should return. The end
+    //   of the string should also always be a valid position.
     let args_str = &s[paren_pos + 1..s.len() - 1];
     Some((name, args_str))
 }
@@ -539,14 +589,22 @@ fn split_args(args_str: &str) -> Vec<&str> {
     }
 
     let mut result = Vec::new();
-    let mut depth = 0u32;
-    let mut start = 0;
+    let mut depth: u32= 0u32;
+    let mut start: usize = 0;
 
+    #[allow(clippy::arithmetic_side_effects)]
+    // Safety:
+    //   If you have nested to `u32::MAX` I will be thoroughly impressed
     for (i, c) in args_str.char_indices() {
         match c {
             '(' => depth += 1,
             ')' => depth -= 1,
             ',' if depth == 0 => {
+                #[allow(clippy::string_slice)]
+                // Safety:
+                //   We are iterating over char indices which is
+                //   explicitly used as a false positive in the clippy
+                //   documentation.
                 result.push(args_str[start..i].trim());
                 start = i + 1;
             }
@@ -554,6 +612,9 @@ fn split_args(args_str: &str) -> Vec<&str> {
         }
     }
 
+    #[allow(clippy::string_slice)]
+    // Safety:
+    //   `start` value was obtained via `char_indices`
     let last = args_str[start..].trim();
     if !last.is_empty() {
         result.push(last);

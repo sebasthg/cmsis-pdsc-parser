@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC components](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_components_pg.html#element_components) element
 ///
 /// Groups all software bundles and standalone components published by a pack.
@@ -19,7 +19,7 @@ pub struct Components {
     pub components: Vec<Component>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [bundle](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_components_pg.html#element_bundle) element
 ///
 /// Groups a set of interdependent components under a shared class, version, and name.
@@ -59,7 +59,7 @@ pub struct Bundle {
     pub components: Vec<Component>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [component](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_components_pg.html#element_component) element
 ///
 /// Defines a single software component. Used for both top-level components and components
@@ -150,7 +150,7 @@ pub struct Component {
     pub environments: Option<ComponentEnvironments>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
 /// Represents the [files](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_components_pg.html#element_files) grouping element inside a component
 pub struct ComponentFiles {
     /// Individual file entries (1..*)
@@ -158,7 +158,7 @@ pub struct ComponentFiles {
     pub files: Vec<ComponentFile>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [file](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_components_pg.html#element_file) entry within a component
 ///
 /// Attributes follow the PDSC `FileType` definition shared across components and APIs.
@@ -200,7 +200,7 @@ pub struct ComponentFile {
     pub projectpath: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
 /// Represents the [extensions](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_components_pg.html#element_extensions) grouping element inside a component
 pub struct ComponentExtensions {
     /// Key/value extension entries (1..*)
@@ -208,7 +208,7 @@ pub struct ComponentExtensions {
     pub extensions: Vec<ComponentExtension>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents an [extension](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_components_pg.html#element_extension) entry within the extensions group
 ///
 /// Provides arbitrary key/value metadata for toolchain or IDE integration.
@@ -220,7 +220,7 @@ pub struct ComponentExtension {
     pub value: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [environments](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_components_pg.html#element_component_environments) grouping element inside a component
 pub struct ComponentEnvironments {
     /// Tool environment entries (1..*)
@@ -228,7 +228,7 @@ pub struct ComponentEnvironments {
     pub environments: Vec<ComponentEnvironment>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [component environment](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_components_pg.html#element_component_environment) entry
 ///
 /// Identifies a specific development tool (e.g. `uv`, `iar`). Tool-specific child

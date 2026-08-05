@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC generators](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_generators_pg.html#element_generators) element
 pub struct Generators {
     /// The list of generator tool descriptions
@@ -10,7 +10,7 @@ pub struct Generators {
     pub generators: Vec<Generator>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC generator](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_generators_pg.html#element_generator) element
 pub struct Generator {
     /// Unique identifier for this generator, referenced by components via `Gname`
@@ -65,7 +65,7 @@ pub struct Generator {
     // TODO: extensions — vendor-specific extension section, requires RawNode handling
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC select](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_generators_pg.html#element_gen_select) element
 ///
 /// Specifies the device or device variant this generator targets.
@@ -88,7 +88,7 @@ pub struct Select {
     pub processor_name: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC gpdsc](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_generators_pg.html#element_gen_gpdsc) element
 ///
 /// Identifies the GPDSC file the generator produces. Supports `$P` substitution.
@@ -97,7 +97,7 @@ pub struct Gpdsc {
     pub name: String,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC exe](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_generators_pg.html#element_gen_exe) element
 ///
 /// Defines native executable invocation of the generator tool. Up to four
@@ -112,7 +112,7 @@ pub struct Exe {
     pub arguments: Vec<Argument>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC eclipse](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_generators_pg.html#element_gen_eclipse) element
 ///
 /// Defines an Eclipse plug-in invocation of the generator tool.
@@ -131,7 +131,7 @@ pub struct Eclipse {
     pub arguments: Vec<Argument>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC web](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_generators_pg.html#element_gen_web) element
 ///
 /// Defines a web service invocation of the generator tool.
@@ -144,7 +144,7 @@ pub struct Web {
     pub arguments: Vec<Argument>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC command](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_generators_pg.html#element_gen_command) element
 ///
 /// A single platform-specific command line that invokes the generator executable.
@@ -157,7 +157,7 @@ pub struct Command {
     pub command: String,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC argument](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_generators_pg.html#element_gen_argument) element
 ///
 /// A single argument passed to an `exe`, `eclipse`, or `web` invocation.
@@ -176,7 +176,7 @@ pub struct Argument {
     pub value: String,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Wrapper for the [PDSC project_files](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_generators_pg.html#element_gen_project_files) element
 ///
 /// Lists the files produced by the generator that the IDE should include in the project.
@@ -186,7 +186,7 @@ pub struct ProjectFiles {
     pub files: Vec<File>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Wrapper for the [PDSC files](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_generators_pg.html#element_gen_files) element
 ///
 /// Lists generator tool files (executables, libraries, scripts) that ship inside the pack.
@@ -196,7 +196,7 @@ pub struct Files {
     pub files: Vec<File>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC file](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_generators_pg.html#element_gen_file) entry in [`ProjectFiles`] or [`Files`]
 pub struct File {
     /// File path relative to the pack base directory; supports substitution variables
@@ -212,7 +212,7 @@ pub struct File {
     pub version: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Deprecated arguments wrapper; use `exe.argument` instead
 pub struct GeneratorArguments {
     /// Individual argument strings (0..*)

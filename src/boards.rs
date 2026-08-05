@@ -5,11 +5,13 @@ use serde::{Deserialize, Deserializer, Serialize};
 /// Deserializes a `u64` from either a hex string (`"0x..."`) or a decimal string.
 fn deserialize_hex_u64<'de, D: Deserializer<'de>>(d: D) -> Result<u64, D::Error> {
     let s = String::deserialize(d)?;
-    if let Some(hex) = s.strip_prefix("0x").or_else(|| s.strip_prefix("0X")) {
-        u64::from_str_radix(hex, 16).map_err(serde::de::Error::custom)
-    } else {
-        s.parse::<u64>().map_err(serde::de::Error::custom)
-    }
+    s.strip_prefix("0x")
+    .or_else(||
+        s.strip_prefix("0X"))
+        .map_or_else(
+            || s.parse::<u64>().map_err(serde::de::Error::custom),
+            |hex| u64::from_str_radix(hex, 16).map_err(serde::de::Error::custom)
+    )
 }
 
 /// Called only when the optional attribute is present; wraps the parsed value in `Some`.
@@ -17,7 +19,7 @@ fn deserialize_opt_hex_u64<'de, D: Deserializer<'de>>(d: D) -> Result<Option<u64
     deserialize_hex_u64(d).map(Some)
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC boards](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html#element_boards) element
 pub struct Boards {
     /// The list of board descriptions
@@ -25,7 +27,7 @@ pub struct Boards {
     pub boards: Vec<Board>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC board](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html#element_board) element
 pub struct Board {
     /// Board vendor name
@@ -94,7 +96,7 @@ pub struct Board {
     pub environments: Option<BoardEnvironments>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC board feature](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html#element_board_feature) element
 pub struct Feature {
     /// Predefined board feature type (e.g. `LED`, `Button`, `XTAL`, `USB`, `Ethernet`); valid values: [BoardFeatureType](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html)
@@ -111,7 +113,7 @@ pub struct Feature {
     pub name: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC mountedDevice](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html#element_board_mountedDevice) element
 pub struct MountedDevice {
     /// Device index for boards with multiple devices
@@ -127,7 +129,7 @@ pub struct MountedDevice {
     pub device_name: String,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC compatibleDevice](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html#element_board_compatibleDevice) element
 pub struct CompatibleDevice {
     /// Device index for multi-device boards
@@ -151,7 +153,7 @@ pub struct CompatibleDevice {
     pub device_sub_family: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC mountedPart](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html#element_board_mountedPart) element
 pub struct MountedPart {
     /// Quantity of parts with this name and vendor
@@ -174,7 +176,7 @@ pub struct MountedPart {
     pub part_revision: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC board image](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html#element_board_image) element
 pub struct Image {
     /// Path to the large top-side board image
@@ -193,7 +195,7 @@ pub struct Image {
     pub public: Option<bool>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC debugInterface](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html#element_board_debugInterface) element
 pub struct DebugInterface {
     /// Debug adapter type (e.g. `CMSIS-DAP`, `JTAG/SW`)
@@ -203,7 +205,7 @@ pub struct DebugInterface {
     pub connector: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC board book](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html#element_board_book) element
 pub struct Book {
     /// Documentation category (e.g. `setup`, `schematic`, `manual`, `other`)
@@ -219,7 +221,7 @@ pub struct Book {
     pub public: Option<bool>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC debugProbe](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html#element_board_debugProbe) element
 pub struct DebugProbe {
     /// Device index for the probe on multi-device boards
@@ -244,7 +246,7 @@ pub struct DebugProbe {
     pub connector: String,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC board memory](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html#element_board_memory) element
 pub struct Memory {
     /// Processor identifier for multi-processor boards
@@ -278,7 +280,7 @@ pub struct Memory {
     pub alias: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC board algorithm](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html#element_board_algorithm) element
 pub struct Algorithm {
     /// Processor identifier for multi-processor boards
@@ -311,7 +313,7 @@ pub struct Algorithm {
     pub style: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [board environment](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html#element_board) entry
 pub struct BoardEnvironment {
     /// IDE environment name (e.g. `uvision`, `iar`, `eclipse`)
@@ -322,7 +324,7 @@ pub struct BoardEnvironment {
     pub processor_name: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Groups board environment entries for a [PDSC board](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html#element_board)
 pub struct BoardEnvironments {
     /// Individual environment entries (0..*)

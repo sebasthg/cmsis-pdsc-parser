@@ -87,7 +87,7 @@ fn main() {
     f.read_to_string(&mut pdsc_content).unwrap();
 
     let document = roxmltree::Document::parse(&pdsc_content).unwrap();
-    let pdsc = Package::new(&document);
+    let pdsc = Package::new(&document).unwrap();
 
     info!("{:#?}", pdsc);
 

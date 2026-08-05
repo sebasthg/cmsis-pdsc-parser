@@ -2,7 +2,7 @@
 //!
 //! This is a Rust crate that aims to provide a convenient abstraction to parse
 //! [CMSIS Pack Description Format](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html) (PDSC)
-//! files.  
+//! files.\
 //! This project takes in a PDSC file and parses into a Rust datastructure.
 //!
 //! ## Usage
@@ -36,7 +36,7 @@
 //! }
 //! ```
 
-use serde::Deserialize;
+use serde::{Serialize, Deserialize};
 
 pub mod pdsc;
 pub mod family;
@@ -53,7 +53,7 @@ pub mod conditions;
 pub mod csolution;
 pub mod examples;
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
 /// Represents [PDSC Package](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_package_pg.html)
 /// which is the root element of the PDSC file
 #[serde(rename_all = "camelCase")]
@@ -161,29 +161,51 @@ pub struct Package<'a> {
 }
 
 impl<'a> Package<'a> {
-    pub fn new(document: &'a roxmltree::Document) -> Self {
+    pub fn new(document: &'a roxmltree::Document) -> Result<Self, Error> {
         // Parse the content
-        let mut package: Package = serde_roxmltree::from_doc(document).unwrap();
+        let mut package: Package = serde_roxmltree::from_doc(document)?;
 
         // Parse the "wild" string conents into structured data
         for family in &mut package.devices.families {
             family.debugvars.parse_debugvars();
-            family.sequences.parse_sequences();
+            family.sequences.parse_sequences()?;
             for sf in &mut family.sub_families {
                 sf.debugvars.parse_debugvars();
-                sf.sequences.parse_sequences();
+                sf.sequences.parse_sequences()?;
                 for device in &mut sf.devices {
                     device.debugvars.parse_debugvars();
-                    device.sequences.parse_sequences();
+                    device.sequences.parse_sequences()?;
                 }
             }
             for device in &mut family.devices {
                 device.debugvars.parse_debugvars();
-                device.sequences.parse_sequences();
+                device.sequences.parse_sequences()?;
             }
         }
 
         // Return the data
-        package
+        Ok(package)
+    }
+}
+
+#[derive(Debug)]
+/// Errors
+pub enum Error {
+    SerdeRoxmltree(serde_roxmltree::Error),
+    Family(family::FamilyParseError),
+    Debug(debug_access::DebugAccessParseError)
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Unable to parse document, got error: {self:?}")
+    }
+}
+
+impl std::error::Error for Error {}
+
+impl From<serde_roxmltree::Error> for Error {
+    fn from(value: serde_roxmltree::Error) -> Self {
+        Self::SerdeRoxmltree(value)
     }
 }

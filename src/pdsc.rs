@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::family::Family;
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
 /// Represents the [PDSC Descrpiton](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_package_description.html)
 /// element.
 pub struct Description {
@@ -16,7 +16,7 @@ pub struct Description {
     pub content: Option<String>
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC ECCN](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_ECCN.html) element
 pub struct Eccn {
     #[serde(rename = "ECCN-EU")]
@@ -25,7 +25,7 @@ pub struct Eccn {
     pub us: String,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Representation of the [PDSC LicenseSets](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_licenseSets_pg.html#element_licenseSets)
 /// element
 pub struct LicenseSets {
@@ -33,7 +33,7 @@ pub struct LicenseSets {
     pub license_set: Vec<LicenseSet>
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC LicenseSetsType](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_licenseSets_pg.html#element_licenseSets)
 pub struct LicenseSet {
     /// License set identifier string, must be uniqe in the PDSC file
@@ -46,7 +46,7 @@ pub struct LicenseSet {
     pub license: Vec<License>
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC License](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_licenseSets_pg.html#element_licensefile)
 /// element.
 ///
@@ -65,14 +65,14 @@ pub struct License {
     pub url: Option<String>
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC Dominate](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_dominate.html) element
 pub struct Dominate {
     /// Descriptive text that explains the reason for dominate
     pub info: Option<String>
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC Repository](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_repository.html) element
 pub struct Repository {
     #[serde(rename = "type")]
@@ -82,13 +82,13 @@ pub struct Repository {
     pub url: String
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
 /// Represents the [PDSC Releases](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_releases.html) element
 pub struct Releases {
     pub release: Vec<Release>
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
 /// Represents the [PDSC Releaes](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_releases.html#element_release) element
 pub struct Release {
     /// Release version string
@@ -107,13 +107,13 @@ pub struct Release {
     pub content: String
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC ChangelogsType](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_changelogs_pg.html#element_changelogs) element
 pub struct Changelogs {
     pub changelog: Vec<Changelog>
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC Changelog](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_changelogs_pg.html#element_changelog) element
 pub struct Changelog {
     /// Changelog identifier string, must be uniqe within the PDSC file
@@ -126,7 +126,7 @@ pub struct Changelog {
     pub default: Option<bool>
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC Keywords](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_keywords.html) element
 pub struct Keywords {
     /// The vector of keywords
@@ -134,7 +134,7 @@ pub struct Keywords {
     pub keywords: Vec<String>
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC Envrionments](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_components_pg.html#element_component_environments) element
 pub struct Environments {
     /// The vector of environments
@@ -142,7 +142,7 @@ pub struct Environments {
     pub environments: Vec<Environment>
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC Environment](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_environment) element
 pub struct Environment {
     pub name: String,
@@ -152,7 +152,7 @@ pub struct Environment {
 }
 
 /// Represents [PDSC Devices](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_devices_pg.html)
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
 pub struct Devices<'a> {
     /// Device family definitions (1..*)
     #[serde(rename = "family", default)]

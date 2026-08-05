@@ -14,11 +14,13 @@ where
 {
     let s = String::deserialize(d)?;
     let trimmed = s.trim();
-    if let Some(hex) = trimmed.strip_prefix("0x").or_else(|| trimmed.strip_prefix("0X")) {
-        u32::from_str_radix(hex, 16).map_err(serde::de::Error::custom)
-    } else {
-        trimmed.parse::<u32>().map_err(serde::de::Error::custom)
-    }
+    trimmed
+        .strip_prefix("0x")
+        .or_else(|| trimmed.strip_prefix("0X"))
+        .map_or_else(
+            || trimmed.parse::<u32>().map_err(serde::de::Error::custom),
+            |hex| u32::from_str_radix(hex, 16).map_err(serde::de::Error::custom)
+        )
 }
 
 /// Deserializes an `Option<bool>` from an xs:boolean string ("true", "false", "1", "0").
@@ -36,7 +38,7 @@ where
 }
 
 /// Parse error for family XML elements.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
 pub enum FamilyParseError {
     /// A required XML attribute was absent.
     MissingAttribute(String),
@@ -45,6 +47,7 @@ pub enum FamilyParseError {
     /// A debugvar declaration could not be parsed.
     MalformedDebugvar(String),
     /// Hit an unimplemented content-parse branch.
+    #[default]
     UnimplementedContent,
 }
 
@@ -61,7 +64,13 @@ impl std::fmt::Display for FamilyParseError {
 
 impl std::error::Error for FamilyParseError {}
 
-#[derive(Debug, PartialEq, Deserialize)]
+impl From<FamilyParseError> for crate::Error {
+    fn from(value: FamilyParseError) -> Self {
+        Self::Family(value)
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
 /// Represents [PDSC Family](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html)
 pub struct Family<'a> {
     #[serde(rename = "Dfamily")]
@@ -146,16 +155,17 @@ pub struct Family<'a> {
     pub sequences: Sequences<'a>
 }
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
 /// Represents the `traceSetput` attribute in [PDSC sequences](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_sequences)
 pub enum TraceSetup {
     #[serde(rename = "full")]
     Full,
     #[serde(rename = "legacy")]
+    #[default]
     Legacy
 }
 
-#[derive(Debug, PartialEq, Deserialize, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
 /// Represents [PDSC Debugvars](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_debugvars)
 pub struct Debugvars {
     /// The relative path to the configuration file containing debugvars
@@ -179,13 +189,13 @@ impl Debugvars {
             if let Some(hex_value_str) = value.strip_prefix("0x")
                && let Ok(k) = u64::from_str_radix(hex_value_str, 16) {
                     return Some(k);
-            };
+            }
 
             // If not hex, parse as base-10
             match value.parse() {
                 Ok(k) => Some(k),
                 Err(e) => {
-                    error!("Failed to parse debugvar value ({}) to u64 with error: {}", value, e);
+                    error!("Failed to parse debugvar value ({value}) to u64 with error: {e}");
                     None
                 }
             }
@@ -196,12 +206,15 @@ impl Debugvars {
     /// Returns `Ok((name, value))` for a valid `__var name = value;` declaration,
     /// or `Err(FamilyParseError::MalformedDebugvar(...))` for any malformed input.
     pub fn parse_single_debugvar(line: &str) -> Result<(String, u64), FamilyParseError> {
-        trace!("Parsing debugvar line: {}", line);
+        trace!("Parsing debugvar line: {line}");
 
         // Remove comments
         let declaration = if line.trim_start().starts_with("//") {
-            let parts: Vec<&str> = line.split("\n").collect();
-            parts[1].trim()
+            let parts: Vec<&str> = line.split('\n').collect();
+            match parts.get(1) {
+                Some(v) => v.trim(),
+                None => return Err(FamilyParseError::MalformedDebugvar("Unable to get comment body".to_string()))
+            }
         } else {
             line.trim()
         };
@@ -210,42 +223,48 @@ impl Debugvars {
             return Err(FamilyParseError::MalformedDebugvar("empty declaration".to_string()));
         }
 
-        let stripped_declaration = match declaration.strip_prefix("__var ") {
-            Some(val) => val,
-            None => {
-                warn!("Variable in debugvars does not start with \"__var \": {:?}", declaration);
-                return Err(FamilyParseError::MalformedDebugvar(
-                    format!("missing '__var' prefix: {declaration:?}")
-                ));
-            }
+        let Some(stripped_declaration) = declaration.strip_prefix("__var") else {
+            warn!("Variable in debugvars does not start with \"__var \": {declaration:?}");
+            return Err(FamilyParseError::MalformedDebugvar(
+                format!("missing '__var' prefix: {declaration:?}")
+            ));
         };
 
-        let parts: Vec<&str> = stripped_declaration.split("=").collect();
+        let parts: Vec<&str> = stripped_declaration.split('=').collect();
         if parts.len() != 2 {
-            warn!("Got something other than 2 fields when parsing debugvar: {:?}", parts);
+            warn!("Got something other than 2 fields when parsing debugvar: {parts:?}");
             return Err(FamilyParseError::MalformedDebugvar(
                 format!("expected exactly one '=' separator, got {} fields", parts.len())
             ));
         }
 
-        let name: String = parts[0].trim().to_string();
-        let value_str = parts[1].trim();
-
-        if let Some(value) = Self::parse_value_string(value_str) {
-            Ok((name, value))
+        let name: String = if let Some(v) = parts.first() {
+            v.trim().to_string()
         } else {
-            Err(FamilyParseError::MalformedDebugvar(
-                format!("could not parse value as u64: {value_str:?}")
-            ))
-        }
+            return Err(FamilyParseError::MalformedDebugvar("Unable to variable name in declaration".to_string()));
+        };
+        let value_str = if let Some(v) = parts.get(1) {
+            v.trim()
+        } else {
+            return Err(FamilyParseError::MalformedDebugvar("Unable to variable value in declaration".to_string()));
+        };
+
+        Self::parse_value_string(value_str)
+            .map_or_else(
+                || Err(FamilyParseError::MalformedDebugvar(
+                    format!("could not parse value as u64: {value_str:?}")
+                    )),
+                |value| Ok((name, value))
+            )
     }
 
     /// Parses the debugvars content and returns a hashmap with the variable name as the key and the value as the value
+    #[must_use]
     pub fn parse_debugvars_content(&self) -> HashMap<String, u64> {
         // Remove any lines starting with "//"
-        let content: String = self.content.split("\n").filter_map(|line| {
+        let content: String = self.content.split('\n').filter_map(|line| {
             if line.trim().starts_with("//") {
-                trace!("Ignoring line: {}", line);
+                trace!("Ignoring line: {line}");
                 None
             } else {
                 Some(line.to_owned() + "\n") // Add back the newline
@@ -273,7 +292,7 @@ impl Debugvars {
 }
 
 /// Represents a [PDSC processor](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_processor) element
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct Processor {
     /// Processor instance name for multi-core devices
     #[serde(rename = "Pname")]
@@ -314,7 +333,7 @@ pub struct Processor {
 }
 
 /// Represents a [PDSC compile](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_compile) element
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct Compile {
     /// Processor instance name for multi-core devices
     #[serde(rename = "Pname")]
@@ -329,7 +348,7 @@ pub struct Compile {
 }
 
 /// Represents a [PDSC debug](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_debug) element
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct FamilyDebug {
     /// Processor instance name
     #[serde(rename = "Pname")]
@@ -353,7 +372,7 @@ pub struct FamilyDebug {
 }
 
 /// Represents a [PDSC debugconfig](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_debugconfig) element
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct DebugConfig {
     /// Default debug interface (`swd`, `jtag`, `cjtag`)
     pub default: Option<String>,
@@ -368,7 +387,7 @@ pub struct DebugConfig {
 }
 
 /// Represents a [PDSC debugport](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_debugport) element
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct DebugPort {
     /// Debug port index
     #[serde(rename = "__dp")]
@@ -382,7 +401,7 @@ pub struct DebugPort {
 }
 
 /// JTAG debug port parameters
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct DebugPortJtag {
     /// TAP index on the JTAG chain
     #[serde(rename = "tapindex")]
@@ -390,21 +409,21 @@ pub struct DebugPortJtag {
 }
 
 /// SWD debug port parameters
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct DebugPortSwd {
     /// Maximum SWD clock in Hz (informational)
     pub clockmax: Option<u64>,
 }
 
 /// cJTAG debug port parameters
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct DebugPortCjtag {
     /// Maximum cJTAG clock in Hz (informational)
     pub clockmax: Option<u64>,
 }
 
 /// Represents a [PDSC accessportV1](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_accessportV1) element
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct AccessPortV1 {
     /// Access port identifier
     #[serde(rename = "__apid")]
@@ -417,7 +436,7 @@ pub struct AccessPortV1 {
 }
 
 /// Represents a [PDSC accessportV2](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_accessportV2) element
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct AccessPortV2 {
     /// Access port identifier
     #[serde(rename = "__apid")]
@@ -438,7 +457,7 @@ pub struct AccessPortV2 {
 }
 
 /// Represents a [PDSC algorithm](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_algorithm) element
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct Algorithm {
     /// Path to the flash algorithm file (.FLM)
     pub name: String,
@@ -463,7 +482,7 @@ pub struct Algorithm {
 }
 
 /// Represents a [PDSC flashinfo](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_flashinfo) element
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct FlashInfo {
     /// Path to the flash device description file
     pub name: Option<String>,
@@ -491,7 +510,7 @@ pub struct FlashInfo {
 }
 
 /// A contiguous block within a flash device
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct FlashBlock {
     /// Count of sectors in this block
     #[serde(deserialize_with = "de_uint")]
@@ -501,7 +520,7 @@ pub struct FlashBlock {
 }
 
 /// A gap between flash regions
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct FlashGap {
     /// Count of gap sectors
     #[serde(deserialize_with = "de_uint")]
@@ -511,7 +530,7 @@ pub struct FlashGap {
 }
 
 /// Represents a [PDSC memory](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_memory) element
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct Memory {
     /// Unique name for this memory region
     pub name: Option<String>,
@@ -538,7 +557,7 @@ pub struct Memory {
 }
 
 /// Represents a [PDSC trace](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_trace) element
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct Trace {
     /// Processor instance name
     #[serde(rename = "Pname")]
@@ -557,7 +576,7 @@ pub struct Trace {
 }
 
 /// Represents a [PDSC book](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_book) element
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct Book {
     /// Path or URL to the document
     pub name: String,
@@ -571,9 +590,10 @@ pub struct Book {
     pub public: Option<bool>,
 }
 
+#[allow(clippy::too_long_first_doc_paragraph)]
 /// Represents a [PDSC feature](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_feature) element;
 /// valid `feature_type` values: [DeviceFeatureEnum](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct Feature {
     /// Feature type identifier
     #[serde(rename = "type")]
@@ -590,7 +610,7 @@ pub struct Feature {
 }
 
 /// Represents an [environment](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_environment) entry within a family
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct FamilyEnvironment {
     /// Tool environment identifier
     pub name: String,
@@ -602,7 +622,7 @@ pub struct FamilyEnvironment {
 /// Represents a [PDSC variant](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_variant) element
 ///
 /// Defines a named variant of a device, overriding or extending the parent device's properties.
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct Variant {
     /// Variant name
     #[serde(rename = "Dvariant")]
@@ -653,7 +673,7 @@ pub struct Variant {
 }
 
 /// Represents a [PDSC device](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_device) element
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
 pub struct Device<'a> {
     /// Device name
     #[serde(rename = "Dname")]
@@ -713,7 +733,7 @@ pub struct Device<'a> {
 }
 
 /// Represents a [PDSC subFamily](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_subFamily) element
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
 pub struct SubFamily<'a> {
     /// Sub-family name
     #[serde(rename = "DsubFamily")]
@@ -772,7 +792,7 @@ pub struct SubFamily<'a> {
     pub devices: Vec<Device<'a>>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
 /// Represents [PDSC sequences](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_sequences)
 pub struct Sequences<'a> {
     /// Trace setup configuration
@@ -786,31 +806,36 @@ pub struct Sequences<'a> {
     /// and [block](SequenceElement::Block) elements with their order perserved.
     #[serde(rename = "sequence", default)]
     #[serde(borrow)]
+    #[serde(skip_serializing)]
     pub raw_nodes: Vec<RawNode<'a>>,
 
     /// Debug Sequences
-    #[serde(skip)]
+    #[serde(skip_deserializing)]
     pub sequences: Vec<Sequence>
 }
 
-impl<'a> Sequences<'a> {
+impl Sequences<'_> {
     /// Iterates through the raw nodes and parses the sequences
-    pub fn parse_raw_nodes_content(&self) -> Vec<Sequence> {
+    pub fn parse_raw_nodes_content(&self) -> Result<Vec<Sequence>, crate::Error> {
         self.raw_nodes.iter().map(|node| {
-            node.0.try_into().expect("Failed to parse sequence node")
+            node.0.try_into().inspect_err(|e| {
+                error!("Failed to parse sequence node `{node:#?}` with err `{e:#?}`");
+            })
         }).collect()
     }
 
     /// Parses the raw XML Sequence nodes and stores the parsed sequences in [Self::sequences]
-    pub fn parse_sequences(&mut self) {
-        let sequences = Self::parse_raw_nodes_content(self);
+    pub fn parse_sequences(&mut self) -> Result<(), crate::Error> {
+        let sequences = Self::parse_raw_nodes_content(self)?;
 
         self.sequences = sequences;
+
+        Ok(())
     }
 }
 
 
-#[derive(Debug, PartialEq, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
 /// Represents [PDSC Sequence](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_sequence)
 pub struct Sequence {
     /// The sequence name
@@ -825,17 +850,19 @@ pub struct Sequence {
     /// Descriptive text about the sequence
     pub info: Option<String>,
 
-    #[serde(skip)]
+    #[serde(skip_serializing)]
     pub elements: Vec<SequenceElement>
 }
 
 impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for Sequence {
-    type Error = FamilyParseError;
+    type Error = crate::Error;
 
     fn try_from(value: Node<'a, 'input>) -> Result<Self, Self::Error> {
         // Validate that this is a sequence node
         let node_name = value.tag_name().name();
-        assert_eq!(node_name, "sequence");
+        if node_name != "sequence" {
+            return Err(FamilyParseError::UnknownElementType(node_name.to_string()).into());
+        }
 
         // Get the name
         let sequence_name = value.attribute("name")
@@ -848,12 +875,16 @@ impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for Sequence {
                 |v| Some(v.to_string())
             );
         let sequence_disable = {
-            if let Some(v) = value.attribute("disable") {
-                let disable_value: bool = v.parse().expect("Non boolean value in disable field");
+            value.attribute("disable").and_then(|v| {
+                let disable_value: bool = match v.parse() {
+                    Ok(k) => k,
+                    Err(e) => {
+                        error!("Failed to parse non-boolean value `{v}` with error `{e:#?}`");
+                        return None
+                    }
+                };
                 Some(disable_value)
-            } else {
-                None
-            }
+            })
         };
         let sequence_info = value.attribute("info")
             .map_or_else(
@@ -865,13 +896,13 @@ impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for Sequence {
         let mut elements: Vec<SequenceElement> = Vec::new();
 
         // Try to parse the child nodes
-        for child in value.children().filter(|c| c.is_element()) {
+        for child in value.children().filter(roxmltree::Node::is_element) {
             let element: SequenceElement = child.try_into()?;
 
             elements.push(element);
         }
 
-        Ok(Sequence {
+        Ok(Self {
             name: sequence_name.to_string(),
             processor_name: sequence_processor_name,
             disable: sequence_disable,
@@ -882,12 +913,12 @@ impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for Sequence {
 }
 
 impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for SequenceElement {
-    type Error = FamilyParseError;
+    type Error = crate::Error;
 
     fn try_from(value: Node<'a, 'input>) -> Result<Self, Self::Error> {
         if !value.is_element() {
             // Text/comment nodes are not sequence elements; content-parse is unimplemented
-            return Err(FamilyParseError::UnimplementedContent);
+            return Err(FamilyParseError::UnimplementedContent.into());
         }
         match value.tag_name().name().to_lowercase().as_str() {
             "block" => Ok(
@@ -896,30 +927,31 @@ impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for SequenceElement {
             "control" => Ok(
                 <Node<'_, '_> as TryInto<SequenceControl>>::try_into(value)?.into()
             ),
-            other => Err(FamilyParseError::UnknownElementType(other.to_string())),
+            other => Err(FamilyParseError::UnknownElementType(other.to_string()).into()),
         }
     }
 }
 
 impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for SequenceBlock {
-    type Error = FamilyParseError;
+    type Error = crate::Error;
 
     fn try_from(value: Node<'a, 'input>) -> Result<Self, Self::Error> {
-        let mut block: Self = serde_roxmltree::from_node(value).unwrap();
-        block.parse_statements();
+        let mut block: Self =
+            serde_roxmltree::from_node(value)?;
+        block.parse_statements()?;
         Ok(block)
     }
 }
 
 impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for SequenceControl {
-    type Error = FamilyParseError;
+    type Error = crate::Error;
 
     fn try_from(value: Node<'a, 'input>) -> Result<Self, Self::Error> {
         // Use serde_roxmltree to parse the basic elements
-        let mut block: Self = serde_roxmltree::from_node(value).unwrap();
+        let mut block: Self = serde_roxmltree::from_node(value)?;
 
         // Try to parse the child nodes
-        for child in value.children().filter(|c| c.is_element()) {
+        for child in value.children().filter(roxmltree::Node::is_element) {
             let element: SequenceElement = child.try_into()?;
 
             block.elements.push(element);
@@ -928,16 +960,16 @@ impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for SequenceControl {
         // Parse the conditional into an Expression
         let conditional_string: &str;
         if let Some(ref val) = block.conditional_if {
-            conditional_string = val.as_str()
+            conditional_string = val.as_str();
         } else if let Some(ref val) = block.conditional_while {
-            conditional_string = val.as_str()
+            conditional_string = val.as_str();
         } else {
             return Err(FamilyParseError::MissingAttribute(
                 "conditional 'if' or 'while' attribute".to_string()
-            ));
-        };
+            ).into());
+        }
 
-        let conditional: debug_access::Expression = conditional_string.into();
+        let conditional: debug_access::Expression = conditional_string.try_into()?;
         block.conditional = Some(conditional);
 
         Ok(block)
@@ -945,14 +977,22 @@ impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for SequenceControl {
 }
 
 
-#[derive(Debug, Clone, PartialEq, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
  /// Represents the valid sequence child elements as defined in the "Child Elements" section of the [PDSC sequence element](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_sequence)
 pub enum SequenceElement {
+    /// A PDSC Control sequence, see [SequenceControl]
     Control(SequenceControl),
+    /// A PDSC Block sequence, see [SequenceBlock]
     Block(SequenceBlock),
 }
 
-#[derive(Debug, Clone, PartialEq, Deserialize)]
+impl Default for SequenceElement {
+    fn default() -> Self {
+        Self::Block(SequenceBlock::default())
+    }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
 /// Represents a [PDSC Control Sequence](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_seq_control)
 pub struct SequenceControl {
     /// If conditional
@@ -984,11 +1024,11 @@ pub struct SequenceControl {
 
 impl From<SequenceControl> for SequenceElement {
     fn from(value: SequenceControl) -> Self {
-        SequenceElement::Control(value)
+        Self::Control(value)
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Deserialize, Default)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
 /// Represents a [PDSC Block Sequence](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_seq_block)
 pub struct SequenceBlock {
     /// If `Some(true)` the block must be executed atomically, see the description on CMSIS Pack website.
@@ -1001,42 +1041,42 @@ pub struct SequenceBlock {
     /// Sequence block content
     pub content: String,
 
-    #[serde(skip)]
+    #[serde(skip_serializing)]
     /// [Statement]s resulting from the parsing of [Self::content]
     pub statements: Vec<Statement>
 }
 
 impl SequenceBlock {
     /// Parses [Self::content] into a list of [Statement]s
-    pub fn parse_statements_content(&self) -> Vec<Statement> {
+    pub fn parse_statements_content(&self) -> Result<Vec<Statement>, crate::Error> {
         self.content.lines()
             .flat_map(|line| line.split(';'))
             .map(str::trim)
             .filter(|s| !s.is_empty())
-            .map(|s| Statement::from(s.to_string()))
+            .map(|s| Statement::try_from(s.to_string()))
             .collect()
     }
 
     /// Parses the block content and stores the result in [Self::statements]
-    pub fn parse_statements(&mut self) {
-        self.statements = self.parse_statements_content();
+    pub fn parse_statements(&mut self) -> Result<(), crate::Error> {
+        self.statements = self.parse_statements_content()?;
+
+        Ok(())
     }
 }
 
 impl From<SequenceBlock> for SequenceElement {
     fn from(value: SequenceBlock) -> Self {
-        SequenceElement::Block(value)
+        Self::Block(value)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use std::default;
+    use roxmltree::Document;
+    use serde_roxmltree::RawNode;
 
-use roxmltree::Document;
-use serde_roxmltree::RawNode;
-
-use crate::{debug_access::{Assignment, DebugFunction, Expression, Statement::{self}}, pdsc::{Eccn, License, LicenseSet, Release, Releases, Repository}, family::{FamilyParseError, Sequence, SequenceBlock, SequenceControl, SequenceElement}};
+    use crate::{debug_access::{Assignment, DebugFunction, Expression, Statement::{self}}, pdsc::{Eccn, License, LicenseSet, Release, Releases, Repository}, family::{FamilyParseError, Sequence, SequenceBlock, SequenceControl, SequenceElement}};
 
     #[test]
     fn basic_sequence() {

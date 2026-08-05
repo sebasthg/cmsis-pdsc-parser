@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC examples](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_examples_pg.html#element_examples) element
 ///
 /// Groups all example projects published by a pack.
@@ -12,7 +12,7 @@ pub struct Examples {
     pub examples: Vec<Example>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC example](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_examples_pg.html#element_example) element
 ///
 /// Defines a single example project, its boards, tool environments, and classification attributes.
@@ -49,7 +49,7 @@ pub struct Example {
     pub attributes: Option<ExampleAttributes>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents an [example board reference](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_examples_pg.html#element_example_board)
 ///
 /// Identifies a development board on which the example has been tested.
@@ -77,7 +77,7 @@ pub struct ExampleBoard {
     pub device_name: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [example project](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_examples_pg.html#element_example_project) element
 ///
 /// Groups the tool-specific environment entries for this example.
@@ -87,7 +87,7 @@ pub struct ExampleProject {
     pub environments: Vec<ExampleEnvironment>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents an [example project environment](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_examples_pg.html#element_example_project_env) entry
 ///
 /// Identifies the project file and optional subfolder for a specific development tool
@@ -103,7 +103,7 @@ pub struct ExampleEnvironment {
     pub folder: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [example attributes](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_examples_pg.html#element_example_attributes) element
 ///
 /// Classification metadata used for example discovery and filtering.
@@ -121,7 +121,7 @@ pub struct ExampleAttributes {
     pub keywords: Vec<String>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [component attribute](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_examples_pg.html#element_example_attribute_component) entry
 ///
 /// Tags the example with a component class, group, and optional version for filtering.

@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC parts](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_parts_pg.html#element_parts) element
 pub struct Parts {
     /// The list of hardware part descriptions
@@ -10,7 +10,7 @@ pub struct Parts {
     pub parts: Vec<Part>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC part](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_parts_pg.html#element_part) element
 pub struct Part {
     /// Hardware part vendor name
@@ -59,7 +59,7 @@ pub struct Part {
     pub environments: Option<PartEnvironments>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC part feature](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_feature) element
 pub struct Feature {
     /// Processor identifier for multi-core parts
@@ -80,7 +80,7 @@ pub struct Feature {
     pub name: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC part book](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_book) element
 pub struct Book {
     /// Processor identifier for multi-core parts
@@ -97,7 +97,7 @@ pub struct Book {
     pub public: Option<bool>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC part image](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_parts_pg.html#element_part_image) element
 pub struct Image {
     /// Path to the top-side part image
@@ -113,7 +113,7 @@ pub struct Image {
     pub public: Option<bool>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [part environment](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_parts_pg.html#element_part) entry
 pub struct PartEnvironment {
     /// IDE environment name (e.g. `uvision`, `iar`, `eclipse`)
@@ -124,7 +124,7 @@ pub struct PartEnvironment {
     pub processor_name: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Groups part environment entries for a [PDSC part](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_parts_pg.html#element_part)
 pub struct PartEnvironments {
     /// Individual environment entries (0..*)

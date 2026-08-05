@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC apis](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_apis_pg.html#element_apis) element
 ///
 /// Groups all API definitions published by a pack. At most one `<apis>` section may exist per package.
@@ -12,7 +12,7 @@ pub struct Apis {
     pub apis: Vec<Api>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC api](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_apis_pg.html#element_api) element
 ///
 /// Defines a software API identified by a component class, group, and optional version.
@@ -49,7 +49,7 @@ pub struct Api {
     pub files: Option<ApiFiles>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the `<files>` grouping element inside a [PDSC api](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_apis_pg.html#element_api)
 pub struct ApiFiles {
     /// Individual file entries (1..*)
@@ -57,7 +57,7 @@ pub struct ApiFiles {
     pub files: Vec<ApiFile>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a `<file>` entry within the API files group
 ///
 /// Attributes follow the [PDSC FileType](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_components_pg.html#element_file) definition.

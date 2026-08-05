@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC conditions](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_conditions_pg.html#element_conditions) element
 ///
 /// Groups all condition definitions used to conditionally include components, files, and other pack content.
@@ -12,7 +12,7 @@ pub struct Conditions {
     pub conditions: Vec<Condition>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC condition](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_conditions_pg.html#element_condition) element
 ///
 /// A condition groups `accept`, `require`, and `deny` filter rules identified by a unique `id`.
@@ -36,7 +36,8 @@ pub struct Condition {
     pub deny: Vec<Filter>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
+#[allow(clippy::too_long_first_doc_paragraph)]
 /// Represents the shared filter attributes used by
 /// [`<accept>`](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_conditions_pg.html#element_accept),
 /// [`<require>`](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_conditions_pg.html#element_require), and

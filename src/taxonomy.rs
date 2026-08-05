@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC taxonomy](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_taxonomy.html#element_taxonomy) element
 ///
 /// Groups `description` entries that define the component classes and group names used in a pack.
@@ -12,7 +12,7 @@ pub struct Taxonomy {
     pub descriptions: Vec<TaxonomyDescription>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC taxonomy description](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_taxonomy.html#element_taxonomyDescription) entry
 ///
 /// Defines a component class or a class-and-group combination used to categorise components.
@@ -39,7 +39,7 @@ pub struct TaxonomyDescription {
     pub content: String,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 /// Predefined component class names per
 /// [CclassType](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_taxonomy.html#CclassType)
 pub enum CclassType {
@@ -101,7 +101,7 @@ impl TryFrom<String> for CclassType {
     fn try_from(s: String) -> Result<Self, Self::Error> { Self::try_from(s.as_str()) }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 /// Predefined component group names per
 /// [CgroupType](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_taxonomy.html#CgroupType)
 pub enum CgroupType {

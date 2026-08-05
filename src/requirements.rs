@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC Requirements](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_requirements_pg.html#element_requirements)
 /// element
 pub struct Requirements {
@@ -19,35 +19,35 @@ pub struct Requirements {
     pub targets: Option<TargetsList>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Wrapper type for the `packages` xml element
 pub struct PackagesList {
     #[serde(rename = "package")]
     pub packages: Vec<Package>
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Wrapper type for the `compilers` xml element
 pub struct CompilersList {
     #[serde(rename = "compiler")]
     pub compilers: Vec<Compiler>
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Wrapper type for the `languages` xml element
 pub struct LanguagesList {
     #[serde(rename = "language")]
     pub languages: Vec<Language>
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Wrapper type for the `targets` xml element
 pub struct TargetsList {
     #[serde(rename = "target")]
     pub targets: Vec<Target>
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC PackagesType](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_requirements_pg.html#element_packages) element
 pub struct Package {
     /// The package vendor; pattern: `RestrictedString` = `[A-Za-z0-9_\-]+`
@@ -60,7 +60,7 @@ pub struct Package {
     pub version: Option<String>
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC CompilersType](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_requirements_pg.html#element_compilers) element
 pub struct Compiler {
     /// Name of the required compiler
@@ -70,7 +70,7 @@ pub struct Compiler {
     pub version: String,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC Languages](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_requirements_pg.html#element_languages) element
 pub struct Language {
     /// Name of the porgramming language, i.e. "C", "C++", "Rust"
@@ -80,7 +80,7 @@ pub struct Language {
     pub version: String
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC Targets](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_requirements_pg.html#element_targets) element
 pub struct Target {
     #[serde(rename = "Dvendor")]

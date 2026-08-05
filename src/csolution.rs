@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC csolution](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_csolution_pg.html#element_csolution) element
 ///
 /// Groups software layers and project templates published by a pack for use with csolution-based projects.
@@ -16,7 +16,7 @@ pub struct Csolution {
     pub templates: Vec<CsolutionTemplate>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [clayer](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_csolution_pg.html#element_clayer) element
 ///
 /// Provides access information for a software layer stored in a pack.
@@ -39,7 +39,7 @@ pub struct Clayer {
     pub condition: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [template](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_csolution_pg.html#element_cs_template) element
 ///
 /// Defines a project template for initialising new csolution projects in an IDE.

@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC part-taxonomy](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_part-taxonomy.html#element_part-taxonomy) element
 ///
 /// Groups `description` entries that define the hardware part classes and group names used in a pack.
@@ -12,7 +12,7 @@ pub struct PartTaxonomy {
     pub descriptions: Vec<PartTaxonomyDescription>,
 }
 
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC part-taxonomy description](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_part-taxonomy.html#element_part-taxonomyDescription) entry
 ///
 /// Defines a hardware part class or a class-and-group combination used to categorise parts.
@@ -39,7 +39,7 @@ pub struct PartTaxonomyDescription {
     pub content: String,
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 /// Predefined hardware part class names per
 /// [HclassType](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_part-taxonomy.html#HclassType)
 pub enum HclassType {
@@ -123,7 +123,7 @@ impl TryFrom<String> for HclassType {
     fn try_from(s: String) -> Result<Self, Self::Error> { Self::try_from(s.as_str()) }
 }
 
-#[derive(Debug, PartialEq, Clone, Copy)]
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
 /// Predefined hardware part group names per
 /// [HgroupType](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_part-taxonomy.html#HgroupType)
 pub enum HgroupType {
@@ -282,6 +282,7 @@ pub enum HgroupType {
 
 impl TryFrom<&str> for HgroupType {
     type Error = ();
+    #[allow(clippy::too_many_lines)]
     fn try_from(s: &str) -> Result<Self, Self::Error> {
         match s {
             "Comparators" => Ok(Self::Comparators),
