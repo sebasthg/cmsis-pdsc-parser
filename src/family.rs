@@ -176,18 +176,17 @@ impl Debugvars {
     /// Parses a debugvar value string into u64
     fn parse_value_string(value: &str) -> Option<u64> {
             // Try to parse the value as a hex value firs
-            if let Some(hex_value_str) = value.strip_prefix("0x") {
-                if let Ok(k) = u64::from_str_radix(hex_value_str, 16) {
+            if let Some(hex_value_str) = value.strip_prefix("0x")
+               && let Ok(k) = u64::from_str_radix(hex_value_str, 16) {
                     return Some(k);
-                }
             };
 
             // If not hex, parse as base-10
             match value.parse() {
-                Ok(k) => return Some(k),
+                Ok(k) => Some(k),
                 Err(e) => {
                     error!("Failed to parse debugvar value ({}) to u64 with error: {}", value, e);
-                    return None
+                    None
                 }
             }
     }
@@ -804,7 +803,7 @@ impl<'a> Sequences<'a> {
 
     /// Parses the raw XML Sequence nodes and stores the parsed sequences in [Self::sequences]
     pub fn parse_sequences(&mut self) {
-        let sequences = Self::parse_raw_nodes_content(&self);
+        let sequences = Self::parse_raw_nodes_content(self);
 
         self.sequences = sequences;
     }
@@ -938,7 +937,7 @@ impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for SequenceControl {
             ));
         };
 
-        let conditional: debug_access::Expression = conditional_string.try_into().expect("Failed to parse conditional string");
+        let conditional: debug_access::Expression = conditional_string.into();
         block.conditional = Some(conditional);
 
         Ok(block)

@@ -163,7 +163,7 @@ pub struct Package<'a> {
 impl<'a> Package<'a> {
     pub fn new(document: &'a roxmltree::Document) -> Self {
         // Parse the content
-        let mut package: Package = serde_roxmltree::from_doc(&document).unwrap();
+        let mut package: Package = serde_roxmltree::from_doc(document).unwrap();
 
         // Parse the "wild" string conents into structured data
         for family in &mut package.devices.families {

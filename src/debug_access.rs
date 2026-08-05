@@ -58,8 +58,8 @@ impl From<String> for Statement {
             0 => unreachable!("String split should never return 0 elements"),
             1 => {
                 // No '=', must be a standalone expression
-                let expression: Expression = input.try_into().unwrap();
-                return Self::Expression(expression);
+                let expression: Expression = input.into();
+                Self::Expression(expression)
             },
             _ => {
                 let variable = split[0]
