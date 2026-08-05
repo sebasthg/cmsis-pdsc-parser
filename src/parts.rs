@@ -161,35 +161,47 @@ mod tests {
         assert_eq!(part.sub, Some("SAMD21G18A".to_string()));
         assert_eq!(part.variant, Some("TQFP48".to_string()));
         assert_eq!(part.revision, Some("A".to_string()));
-        assert_eq!(part.description, Some("SAM D21 ARM Cortex-M0+ microcontroller with 256 KB Flash".to_string()));
-        assert_eq!(part.features, vec![
-            Feature {
-                processor_name: Some("Cortex-M0+".to_string()),
-                feature_type: "CoreOther".to_string(),
-                n: Some("1".to_string()),
-                m: None,
-                name: Some("Cortex-M0+ processor".to_string()),
-            },
-            Feature {
+        assert_eq!(
+            part.description,
+            Some("SAM D21 ARM Cortex-M0+ microcontroller with 256 KB Flash".to_string())
+        );
+        assert_eq!(
+            part.features,
+            vec![
+                Feature {
+                    processor_name: Some("Cortex-M0+".to_string()),
+                    feature_type: "CoreOther".to_string(),
+                    n: Some("1".to_string()),
+                    m: None,
+                    name: Some("Cortex-M0+ processor".to_string()),
+                },
+                Feature {
+                    processor_name: None,
+                    feature_type: "UART".to_string(),
+                    n: Some("6".to_string()),
+                    m: None,
+                    name: None,
+                },
+            ]
+        );
+        assert_eq!(
+            part.books,
+            vec![Book {
                 processor_name: None,
-                feature_type: "UART".to_string(),
-                n: Some("6".to_string()),
-                m: None,
-                name: None,
-            },
-        ]);
-        assert_eq!(part.books, vec![Book {
-            processor_name: None,
-            name: "docs/SAM_D21_DS.pdf".to_string(),
-            title: "SAM D21 Datasheet".to_string(),
-            public: Some(true),
-        }]);
-        assert_eq!(part.image, Some(Image {
-            top: "images/samd21_top.png".to_string(),
-            bottom: Some("images/samd21_bottom.png".to_string()),
-            perspective: None,
-            public: Some(true),
-        }));
+                name: "docs/SAM_D21_DS.pdf".to_string(),
+                title: "SAM D21 Datasheet".to_string(),
+                public: Some(true),
+            }]
+        );
+        assert_eq!(
+            part.image,
+            Some(Image {
+                top: "images/samd21_top.png".to_string(),
+                bottom: Some("images/samd21_bottom.png".to_string()),
+                perspective: None,
+                public: Some(true),
+            })
+        );
     }
 
     #[test]
@@ -242,7 +254,10 @@ mod tests {
         assert_eq!(parts.parts[1].features, vec![]);
         assert_eq!(parts.parts[1].books.len(), 1);
         assert_eq!(parts.parts[1].books[0].name, "docs/cm0.pdf");
-        assert_eq!(parts.parts[1].books[0].title, "Cortex-M0 Technical Reference Manual");
+        assert_eq!(
+            parts.parts[1].books[0].title,
+            "Cortex-M0 Technical Reference Manual"
+        );
     }
 
     #[test]
@@ -262,15 +277,24 @@ mod tests {
 
         let part = &parts.parts[0];
         assert_eq!(part.name, "MY-CHIP-001");
-        let envs = part.environments.as_ref().expect("environments should be present");
+        let envs = part
+            .environments
+            .as_ref()
+            .expect("environments should be present");
         assert_eq!(envs.environments.len(), 2);
-        assert_eq!(envs.environments[0], PartEnvironment {
-            name: "uvision".to_string(),
-            processor_name: None,
-        });
-        assert_eq!(envs.environments[1], PartEnvironment {
-            name: "iar".to_string(),
-            processor_name: Some("Core0".to_string()),
-        });
+        assert_eq!(
+            envs.environments[0],
+            PartEnvironment {
+                name: "uvision".to_string(),
+                processor_name: None,
+            }
+        );
+        assert_eq!(
+            envs.environments[1],
+            PartEnvironment {
+                name: "iar".to_string(),
+                processor_name: Some("Core0".to_string()),
+            }
+        );
     }
 }

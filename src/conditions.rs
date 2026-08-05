@@ -198,7 +198,10 @@ mod tests {
 
         let c0 = &conds.conditions[0];
         assert_eq!(c0.id, "CM4");
-        assert_eq!(c0.description, Some("Requires ARM Cortex-M4 with FPU".to_string()));
+        assert_eq!(
+            c0.description,
+            Some("Requires ARM Cortex-M4 with FPU".to_string())
+        );
         assert_eq!(c0.accept.len(), 2);
         assert_eq!(c0.accept[0].device_core, Some("Cortex-M4".to_string()));
         assert_eq!(c0.accept[0].fpu, Some("SP_FPU".to_string()));

@@ -6,12 +6,11 @@ use serde::{Deserialize, Deserializer, Serialize};
 fn deserialize_hex_u64<'de, D: Deserializer<'de>>(d: D) -> Result<u64, D::Error> {
     let s = String::deserialize(d)?;
     s.strip_prefix("0x")
-    .or_else(||
-        s.strip_prefix("0X"))
+        .or_else(|| s.strip_prefix("0X"))
         .map_or_else(
             || s.parse::<u64>().map_err(serde::de::Error::custom),
-            |hex| u64::from_str_radix(hex, 16).map_err(serde::de::Error::custom)
-    )
+            |hex| u64::from_str_radix(hex, 16).map_err(serde::de::Error::custom),
+        )
 }
 
 /// Called only when the optional attribute is present; wraps the parsed value in `Some`.
@@ -299,11 +298,19 @@ pub struct Algorithm {
     pub size: u64,
 
     /// RAM execution base address for the algorithm (hex or decimal)
-    #[serde(rename = "RAMstart", default, deserialize_with = "deserialize_opt_hex_u64")]
+    #[serde(
+        rename = "RAMstart",
+        default,
+        deserialize_with = "deserialize_opt_hex_u64"
+    )]
     pub ram_start: Option<u64>,
 
     /// Maximum RAM available for algorithm execution (hex or decimal)
-    #[serde(rename = "RAMsize", default, deserialize_with = "deserialize_opt_hex_u64")]
+    #[serde(
+        rename = "RAMsize",
+        default,
+        deserialize_with = "deserialize_opt_hex_u64"
+    )]
     pub ram_size: Option<u64>,
 
     /// Whether this is the default algorithm for the covered region (default: `false`)
@@ -335,8 +342,8 @@ pub struct BoardEnvironments {
 #[cfg(test)]
 mod tests {
     use crate::boards::{
-        Algorithm, BoardEnvironment, Boards, Book,
-        CompatibleDevice, Feature, Image, Memory, MountedDevice, MountedPart, DebugProbe,
+        Algorithm, BoardEnvironment, Boards, Book, CompatibleDevice, DebugProbe, Feature, Image,
+        Memory, MountedDevice, MountedPart,
     };
 
     #[test]
@@ -362,59 +369,83 @@ mod tests {
         assert_eq!(board.vendor, "STMicroelectronics");
         assert_eq!(board.name, "NUCLEO-F401RE");
         assert_eq!(board.revision, Some("Rev.C".to_string()));
-        assert_eq!(board.description, Some("STM32 Nucleo-64 development board with STM32F401RE MCU".to_string()));
-        assert_eq!(board.features, vec![Feature {
-            feature_type: "XTAL".to_string(),
-            n: Some("8".to_string()),
-            m: None,
-            name: Some("High-speed crystal oscillator".to_string()),
-        }]);
-        assert_eq!(board.mounted_devices, vec![MountedDevice {
-            device_index: None,
-            device_vendor: "STMicroelectronics:13".to_string(),
-            device_name: "STM32F401RETx".to_string(),
-        }]);
-        assert_eq!(board.compatible_devices, vec![CompatibleDevice {
-            device_index: None,
-            device_vendor: "STMicroelectronics:13".to_string(),
-            device_name: Some("STM32F401*".to_string()),
-            device_family: None,
-            device_sub_family: None,
-        }]);
-        assert_eq!(board.image, Some(Image {
-            large: Some("images/nucleo_large.png".to_string()),
-            small: Some("images/nucleo_small.png".to_string()),
-            bottom: None,
-            perspective: None,
-            public: None,
-        }));
-        assert_eq!(board.books, vec![Book {
-            category: Some("setup".to_string()),
-            name: Some("docs/setup.pdf".to_string()),
-            title: Some("Getting Started".to_string()),
-            public: Some(true),
-        }]);
-        assert_eq!(board.memories, vec![Memory {
-            processor_name: None,
-            name: Some("FLASH".to_string()),
-            access: Some("rx".to_string()),
-            start: 0x08000000,
-            size: 0x80000,
-            default: Some(true),
-            startup: Some(true),
-            uninit: None,
-            alias: None,
-        }]);
-        assert_eq!(board.algorithms, vec![Algorithm {
-            processor_name: None,
-            name: "Flash/STM32F4xx.FLM".to_string(),
-            start: 0x08000000,
-            size: 0x80000,
-            ram_start: None,
-            ram_size: None,
-            default: Some(true),
-            style: None,
-        }]);
+        assert_eq!(
+            board.description,
+            Some("STM32 Nucleo-64 development board with STM32F401RE MCU".to_string())
+        );
+        assert_eq!(
+            board.features,
+            vec![Feature {
+                feature_type: "XTAL".to_string(),
+                n: Some("8".to_string()),
+                m: None,
+                name: Some("High-speed crystal oscillator".to_string()),
+            }]
+        );
+        assert_eq!(
+            board.mounted_devices,
+            vec![MountedDevice {
+                device_index: None,
+                device_vendor: "STMicroelectronics:13".to_string(),
+                device_name: "STM32F401RETx".to_string(),
+            }]
+        );
+        assert_eq!(
+            board.compatible_devices,
+            vec![CompatibleDevice {
+                device_index: None,
+                device_vendor: "STMicroelectronics:13".to_string(),
+                device_name: Some("STM32F401*".to_string()),
+                device_family: None,
+                device_sub_family: None,
+            }]
+        );
+        assert_eq!(
+            board.image,
+            Some(Image {
+                large: Some("images/nucleo_large.png".to_string()),
+                small: Some("images/nucleo_small.png".to_string()),
+                bottom: None,
+                perspective: None,
+                public: None,
+            })
+        );
+        assert_eq!(
+            board.books,
+            vec![Book {
+                category: Some("setup".to_string()),
+                name: Some("docs/setup.pdf".to_string()),
+                title: Some("Getting Started".to_string()),
+                public: Some(true),
+            }]
+        );
+        assert_eq!(
+            board.memories,
+            vec![Memory {
+                processor_name: None,
+                name: Some("FLASH".to_string()),
+                access: Some("rx".to_string()),
+                start: 0x08000000,
+                size: 0x80000,
+                default: Some(true),
+                startup: Some(true),
+                uninit: None,
+                alias: None,
+            }]
+        );
+        assert_eq!(
+            board.algorithms,
+            vec![Algorithm {
+                processor_name: None,
+                name: "Flash/STM32F4xx.FLM".to_string(),
+                start: 0x08000000,
+                size: 0x80000,
+                ram_start: None,
+                ram_size: None,
+                default: Some(true),
+                style: None,
+            }]
+        );
         assert_eq!(board.mounted_parts, vec![]);
         assert_eq!(board.debug_interfaces, vec![]);
         assert_eq!(board.debug_probe, None);
@@ -439,17 +470,23 @@ mod tests {
         assert_eq!(board.revision, None);
         assert_eq!(board.uuid, None);
         assert_eq!(board.description, Some("A minimal test board".to_string()));
-        assert_eq!(board.features, vec![Feature {
-            feature_type: "LED".to_string(),
-            n: Some("2".to_string()),
-            m: None,
-            name: None,
-        }]);
-        assert_eq!(board.mounted_devices, vec![MountedDevice {
-            device_index: None,
-            device_vendor: "ARM:82".to_string(),
-            device_name: "ARMCM0".to_string(),
-        }]);
+        assert_eq!(
+            board.features,
+            vec![Feature {
+                feature_type: "LED".to_string(),
+                n: Some("2".to_string()),
+                m: None,
+                name: None,
+            }]
+        );
+        assert_eq!(
+            board.mounted_devices,
+            vec![MountedDevice {
+                device_index: None,
+                device_vendor: "ARM:82".to_string(),
+                device_name: "ARMCM0".to_string(),
+            }]
+        );
         assert_eq!(board.compatible_devices, vec![]);
         assert_eq!(board.mounted_parts, vec![]);
         assert_eq!(board.books, vec![]);
@@ -478,21 +515,27 @@ mod tests {
         assert_eq!(board.vendor, "ARM");
         assert_eq!(board.name, "MPS2");
         assert_eq!(board.sales_contact, Some("support@arm.com".to_string()));
-        assert_eq!(board.mounted_parts, vec![MountedPart {
-            n: "1".to_string(),
-            part_vendor: "Xilinx".to_string(),
-            part_name: "XC7A200T".to_string(),
-            part_variant: Some("-1FBG484C".to_string()),
-            part_revision: None,
-        }]);
-        assert_eq!(board.debug_probe, Some(DebugProbe {
-            device_index: None,
-            name: "CMSIS-DAP".to_string(),
-            version: "2.0".to_string(),
-            debug_link: "swd".to_string(),
-            debug_clock: 10_000_000,
-            connector: "USB-C".to_string(),
-        }));
+        assert_eq!(
+            board.mounted_parts,
+            vec![MountedPart {
+                n: "1".to_string(),
+                part_vendor: "Xilinx".to_string(),
+                part_name: "XC7A200T".to_string(),
+                part_variant: Some("-1FBG484C".to_string()),
+                part_revision: None,
+            }]
+        );
+        assert_eq!(
+            board.debug_probe,
+            Some(DebugProbe {
+                device_index: None,
+                name: "CMSIS-DAP".to_string(),
+                version: "2.0".to_string(),
+                debug_link: "swd".to_string(),
+                debug_clock: 10_000_000,
+                connector: "USB-C".to_string(),
+            })
+        );
         assert_eq!(board.compatible_devices, vec![]);
         assert_eq!(board.memories, vec![]);
         assert_eq!(board.algorithms, vec![]);
@@ -517,15 +560,24 @@ mod tests {
 
         assert_eq!(board.vendor, "Example");
         assert_eq!(board.name, "EnvBoard");
-        let envs = board.environments.as_ref().expect("environments should be present");
+        let envs = board
+            .environments
+            .as_ref()
+            .expect("environments should be present");
         assert_eq!(envs.environments.len(), 2);
-        assert_eq!(envs.environments[0], BoardEnvironment {
-            name: "uvision".to_string(),
-            processor_name: None,
-        });
-        assert_eq!(envs.environments[1], BoardEnvironment {
-            name: "iar".to_string(),
-            processor_name: Some("Core0".to_string()),
-        });
+        assert_eq!(
+            envs.environments[0],
+            BoardEnvironment {
+                name: "uvision".to_string(),
+                processor_name: None,
+            }
+        );
+        assert_eq!(
+            envs.environments[1],
+            BoardEnvironment {
+                name: "iar".to_string(),
+                processor_name: Some("Core0".to_string()),
+            }
+        );
     }
 }

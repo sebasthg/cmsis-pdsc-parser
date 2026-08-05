@@ -121,59 +121,65 @@ mod tests {
         let apis: Apis = serde_roxmltree::from_str(xml_str).unwrap();
         assert_eq!(apis.apis.len(), 2);
 
-        assert_eq!(apis.apis[0], Api {
-            class: "CMSIS".to_string(),
-            group: "RTOS2".to_string(),
-            api_version: Some("2.1.3".to_string()),
-            exclusive: Some(false),
-            condition: Some("ARMCC6".to_string()),
-            license_set: Some("all".to_string()),
-            changelog: Some("Changelog.txt".to_string()),
-            description: Some("CMSIS-RTOS2 API for real-time operating systems".to_string()),
-            files: Some(ApiFiles {
-                files: vec![
-                    ApiFile {
-                        name: "CMSIS/RTOS2/Include/cmsis_os2.h".to_string(),
-                        category: "header".to_string(),
-                        attr: None,
-                        condition: None,
-                        version: None,
-                        select: None,
-                        src: None,
-                        path: None,
-                        language: None,
-                        scope: None,
-                        public: None,
-                        projectpath: None,
-                    },
-                    ApiFile {
-                        name: "CMSIS/RTOS2/Doc/index.html".to_string(),
-                        category: "doc".to_string(),
-                        attr: None,
-                        condition: None,
-                        version: None,
-                        select: None,
-                        src: None,
-                        path: None,
-                        language: None,
-                        scope: None,
-                        public: Some(true),
-                        projectpath: None,
-                    },
-                ],
-            }),
-        });
-        assert_eq!(apis.apis[1], Api {
-            class: "Device".to_string(),
-            group: "Startup".to_string(),
-            api_version: None,
-            exclusive: None,
-            condition: None,
-            license_set: None,
-            changelog: None,
-            description: None,
-            files: None,
-        });
+        assert_eq!(
+            apis.apis[0],
+            Api {
+                class: "CMSIS".to_string(),
+                group: "RTOS2".to_string(),
+                api_version: Some("2.1.3".to_string()),
+                exclusive: Some(false),
+                condition: Some("ARMCC6".to_string()),
+                license_set: Some("all".to_string()),
+                changelog: Some("Changelog.txt".to_string()),
+                description: Some("CMSIS-RTOS2 API for real-time operating systems".to_string()),
+                files: Some(ApiFiles {
+                    files: vec![
+                        ApiFile {
+                            name: "CMSIS/RTOS2/Include/cmsis_os2.h".to_string(),
+                            category: "header".to_string(),
+                            attr: None,
+                            condition: None,
+                            version: None,
+                            select: None,
+                            src: None,
+                            path: None,
+                            language: None,
+                            scope: None,
+                            public: None,
+                            projectpath: None,
+                        },
+                        ApiFile {
+                            name: "CMSIS/RTOS2/Doc/index.html".to_string(),
+                            category: "doc".to_string(),
+                            attr: None,
+                            condition: None,
+                            version: None,
+                            select: None,
+                            src: None,
+                            path: None,
+                            language: None,
+                            scope: None,
+                            public: Some(true),
+                            projectpath: None,
+                        },
+                    ],
+                }),
+            }
+        );
+        assert_eq!(
+            apis.apis[1],
+            Api {
+                class: "Device".to_string(),
+                group: "Startup".to_string(),
+                api_version: None,
+                exclusive: None,
+                condition: None,
+                license_set: None,
+                changelog: None,
+                description: None,
+                files: None,
+            }
+        );
     }
 
     #[test]

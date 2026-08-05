@@ -2,9 +2,16 @@ use std::io::Read;
 
 use log::info;
 
-use cmsis_pdsc_parser::{Package, pdsc::{License, LicenseSet, self}, requirements::{self, PackagesList}};
+use cmsis_pdsc_parser::{
+    Package,
+    pdsc::{self, License, LicenseSet},
+    requirements::{self, PackagesList},
+};
 
-const PDSC_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/tests/PIC32CM_PL/Microchip.PIC32CM-PL_DFP.pdsc");
+const PDSC_PATH: &str = concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/tests/PIC32CM_PL/Microchip.PIC32CM-PL_DFP.pdsc"
+);
 
 const EXPECTED_DEBUGVARS: [(&str, u64); 26] = [
     ("AIRCR_Addr", 0xE000ED0C),
@@ -39,7 +46,7 @@ const EXPECTED_DEBUGVARS: [(&str, u64); 26] = [
     ("FPB_KEY", 0x00000002),
     ("FPB_ENABLE", 0x00000001),
     ("FPB_REPLACE", 0xC0000000),
-    ("RAM_BUFFER", 0x20000000)
+    ("RAM_BUFFER", 0x20000000),
 ];
 
 const EXPECTED_KEYWORDS: [&str; 34] = [
@@ -94,13 +101,22 @@ fn main() {
     // Validate mics package fields
     assert_eq!(pdsc.name, "PIC32CM-PL_DFP".to_string());
     assert_eq!(pdsc.vendor, "Microchip".to_string());
-    assert_eq!(pdsc.description, pdsc::Description {
-        overview: Some("./OVERVIEW.md".to_string()),
-        content: Some("Microchip PIC32CM-PL Series Device Support".to_string())
-    });
+    assert_eq!(
+        pdsc.description,
+        pdsc::Description {
+            overview: Some("./OVERVIEW.md".to_string()),
+            content: Some("Microchip PIC32CM-PL Series Device Support".to_string())
+        }
+    );
     assert_eq!(pdsc.eccn, None);
-    assert_eq!(pdsc.url, "https://packs.download.microchip.com/".to_string());
-    assert_eq!(pdsc.support_contact, Some("https://www.microchip.com/en-us/support".to_string()));
+    assert_eq!(
+        pdsc.url,
+        "https://packs.download.microchip.com/".to_string()
+    );
+    assert_eq!(
+        pdsc.support_contact,
+        Some("https://www.microchip.com/en-us/support".to_string())
+    );
     assert_eq!(pdsc.license, Some("LICENSE.txt".to_string()));
     assert_eq!(pdsc.dominate, None);
     assert_eq!(pdsc.repository, None);
@@ -108,29 +124,33 @@ fn main() {
 
     // Validate the license set
     let license_sets = pdsc.license_sets.unwrap().license_set;
-    assert_eq!(license_sets, vec![LicenseSet {
-        id: "all".to_string(),
-        default: Some(true),
-        gating: Some(false),
-        license: vec![
-            License {
+    assert_eq!(
+        license_sets,
+        vec![LicenseSet {
+            id: "all".to_string(),
+            default: Some(true),
+            gating: Some(false),
+            license: vec![License {
                 name: "LICENSE.txt".to_string(),
                 title: "Apache License, Version 2.0".to_string(),
                 spdx: Some("Apache-2.0".to_string()),
                 url: Some("https://www.apache.org/licenses/LICENSE-2.0".to_string())
-            }
-        ]
-    }]);
+            }]
+        }]
+    );
 
     // Validate the requirements
     let requirements = pdsc.requirements.unwrap();
-    assert_eq!(requirements.packages, Some(PackagesList {
-        packages: vec![requirements::Package {
-            name: "CMSIS".to_string(),
-            vendor: "ARM".to_string(),
-            version: None
-        }]
-    }));
+    assert_eq!(
+        requirements.packages,
+        Some(PackagesList {
+            packages: vec![requirements::Package {
+                name: "CMSIS".to_string(),
+                vendor: "ARM".to_string(),
+                version: None
+            }]
+        })
+    );
     assert_eq!(requirements.compilers, None);
     assert_eq!(requirements.languages, None);
     assert_eq!(requirements.targets, None);
@@ -158,18 +178,31 @@ fn main() {
     let family = &pdsc.devices.families[0];
     assert_eq!(&family.device_family, "PIC32CM-PL");
     assert_eq!(&family.vendor, "Microchip:3");
-    assert_eq!(family.devices.len(), 11, "expected 11 devices directly under family");
-    assert_eq!(family.sub_families.len(), 0, "expected no subFamily elements");
+    assert_eq!(
+        family.devices.len(),
+        11,
+        "expected 11 devices directly under family"
+    );
+    assert_eq!(
+        family.sub_families.len(),
+        0,
+        "expected no subFamily elements"
+    );
 
     // Validate debugvars
     let debugvars = &family.debugvars;
-    assert_eq!(&debugvars.configfile, &Some("debug/PIC32CM-PL.dbgconf".to_string()));
+    assert_eq!(
+        &debugvars.configfile,
+        &Some("debug/PIC32CM-PL.dbgconf".to_string())
+    );
     assert_eq!(&debugvars.version, &Some("1.0.0".to_string()));
 
     let parsed_debugvars = debugvars.parsed_debugvars.clone().unwrap();
     for (name, value) in EXPECTED_DEBUGVARS {
-        let stored_value = parsed_debugvars.get(name).expect(&format!("Failed to get debugvar {:?}", name)).to_owned();
+        let stored_value = parsed_debugvars
+            .get(name)
+            .expect(&format!("Failed to get debugvar {:?}", name))
+            .to_owned();
         assert_eq!(stored_value, value)
     }
-
 }

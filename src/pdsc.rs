@@ -13,7 +13,7 @@ pub struct Description {
 
     /// The description body contaning a brief markdown desrciption
     #[serde(rename = "#content")]
-    pub content: Option<String>
+    pub content: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
@@ -30,7 +30,7 @@ pub struct Eccn {
 /// element
 pub struct LicenseSets {
     #[serde(rename = "licenseSet")]
-    pub license_set: Vec<LicenseSet>
+    pub license_set: Vec<LicenseSet>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
@@ -43,7 +43,7 @@ pub struct LicenseSet {
     /// If set to true this license set is required to be accepted by the user before installation starts.
     pub gating: Option<bool>,
     /// Description of the license file refeneces
-    pub license: Vec<License>
+    pub license: Vec<License>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
@@ -62,14 +62,14 @@ pub struct License {
     pub spdx: Option<String>,
 
     /// Public web link to the license text
-    pub url: Option<String>
+    pub url: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC Dominate](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_dominate.html) element
 pub struct Dominate {
     /// Descriptive text that explains the reason for dominate
-    pub info: Option<String>
+    pub info: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
@@ -79,13 +79,13 @@ pub struct Repository {
     pub repository_type: String,
 
     #[serde(rename = "#content")]
-    pub url: String
+    pub url: String,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
 /// Represents the [PDSC Releases](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_releases.html) element
 pub struct Releases {
-    pub release: Vec<Release>
+    pub release: Vec<Release>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
@@ -104,13 +104,13 @@ pub struct Release {
     /// Pack name (`Vendor.Name`) that replaces this deprecated release
     pub replacement: Option<String>,
     #[serde(rename = "#content")]
-    pub content: String
+    pub content: String,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC ChangelogsType](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_changelogs_pg.html#element_changelogs) element
 pub struct Changelogs {
-    pub changelog: Vec<Changelog>
+    pub changelog: Vec<Changelog>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
@@ -123,7 +123,7 @@ pub struct Changelog {
     pub name: String,
 
     /// If `true` this changelog is associated with all APIs and components that do not explicitly reference another changelog; xs:boolean (`"true"` / `"false"`)
-    pub default: Option<bool>
+    pub default: Option<bool>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
@@ -131,7 +131,7 @@ pub struct Changelog {
 pub struct Keywords {
     /// The vector of keywords
     #[serde(rename = "keyword")]
-    pub keywords: Vec<String>
+    pub keywords: Vec<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
@@ -139,7 +139,7 @@ pub struct Keywords {
 pub struct Environments {
     /// The vector of environments
     #[serde(rename = "environment")]
-    pub environments: Vec<Environment>
+    pub environments: Vec<Environment>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
@@ -157,18 +157,19 @@ pub struct Devices<'a> {
     /// Device family definitions (1..*)
     #[serde(rename = "family", default)]
     #[serde(borrow)]
-    pub families: Vec<Family<'a>>
+    pub families: Vec<Family<'a>>,
 }
 
 #[cfg(test)]
 mod tests {
     use std::default;
 
-    use crate::pdsc::{Changelogs, Devices, Eccn, License, LicenseSet, Release, Releases, Repository};
+    use crate::pdsc::{
+        Changelogs, Devices, Eccn, License, LicenseSet, Release, Releases, Repository,
+    };
     #[test]
     fn parse_eccn() {
-        let xml_str =
-r#"<?xml version="1.0" encoding="UTF-8"?>
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
 <ECCN>
     <ECCN-EU>NEC</ECCN-EU>
     <ECCN-US>5D992.c</ECCN-US>
@@ -186,8 +187,7 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
     /// As per the Open [CMSIS Pack specification](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_ECCN.html)
     /// if the ECCN field is present it must contain both the US and EU ECCN entries.
     fn parse_eccn_missing_field() {
-        let xml_str =
-r#"<?xml version="1.0" encoding="UTF-8"?>
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
 <ECCN>
     <ECCN-US>5D992.c</ECCN-US>
 </ECCN>"#;
@@ -196,8 +196,7 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
 
         assert!(eccn.is_err());
 
-        let xml_str =
-r#"<?xml version="1.0" encoding="UTF-8"?>
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
 <ECCN>
     <ECCN-EU>NEC</ECCN-EU>
 </ECCN>"#;
@@ -209,8 +208,7 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
 
     #[test]
     fn parse_license_set() {
-        let xml_str =
-r#"<?xml version="1.0" encoding="UTF-8"?>
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
 <licenseSet id="all" default="true" gating="false">
     <license name="LICENSE.txt"
         title="Apache License, Version 2.0"
@@ -220,38 +218,39 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
 
         let license_set: LicenseSet = serde_roxmltree::from_str(xml_str).unwrap();
 
-        assert_eq!(license_set, LicenseSet {
-            id: "all".to_string(),
-            default: Some(true),
-            gating: Some(false),
-            license: vec![
-                License {
+        assert_eq!(
+            license_set,
+            LicenseSet {
+                id: "all".to_string(),
+                default: Some(true),
+                gating: Some(false),
+                license: vec![License {
                     name: "LICENSE.txt".to_string(),
                     title: "Apache License, Version 2.0".to_string(),
                     spdx: Some("Apache-2.0".to_string()),
                     url: Some("https://www.apache.org/licenses/LICENSE-2.0".to_string())
-                }
-            ]
-        });
+                }]
+            }
+        );
     }
 
     #[test]
     fn parse_repository() {
-        let xml_str =
-r#"<?xml version="1.0" encoding="UTF-8"?>
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
 <repository type="git">https://github.com/ARM-software/CMSIS-Driver.git</repository>"#;
 
         let repo: Repository = serde_roxmltree::from_str(xml_str).unwrap();
 
         assert_eq!(repo.repository_type, "git".to_string());
-        assert_eq!(repo.url, "https://github.com/ARM-software/CMSIS-Driver.git".to_string());
-
+        assert_eq!(
+            repo.url,
+            "https://github.com/ARM-software/CMSIS-Driver.git".to_string()
+        );
     }
 
     #[test]
     fn parse_releases() {
-        let xml_str =
-r#"<?xml version="1.0" encoding="UTF-8"?>
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
 <releases>
   <release version="1.1.1" date="2020-05-12">Fixed a problem with the feature xyz.</release>
   <release version="1.1.0" date="2020-03-13">Introduces a new feature xyz.</release>
@@ -261,32 +260,36 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
 
         let releases: Releases = serde_roxmltree::from_str(xml_str).unwrap();
 
-        assert_eq!(releases, Releases { release: vec![
-            Release {
-                version: "1.1.1".to_string(),
-                date: Some("2020-05-12".to_string()),
-                content: "Fixed a problem with the feature xyz.".to_string(),
-                ..default::Default::default()
-            },
-            Release {
-                version: "1.1.0".to_string(),
-                date: Some("2020-03-13".to_string()),
-                content: "Introduces a new feature xyz.".to_string(),
-                ..default::Default::default()
-            },
-            Release {
-                version: "1.0.0".to_string(),
-                date: Some("2020-02-23".to_string()),
-                content: "First published version.".to_string(),
-                ..default::Default::default()
-            },
-        ]});
+        assert_eq!(
+            releases,
+            Releases {
+                release: vec![
+                    Release {
+                        version: "1.1.1".to_string(),
+                        date: Some("2020-05-12".to_string()),
+                        content: "Fixed a problem with the feature xyz.".to_string(),
+                        ..default::Default::default()
+                    },
+                    Release {
+                        version: "1.1.0".to_string(),
+                        date: Some("2020-03-13".to_string()),
+                        content: "Introduces a new feature xyz.".to_string(),
+                        ..default::Default::default()
+                    },
+                    Release {
+                        version: "1.0.0".to_string(),
+                        date: Some("2020-02-23".to_string()),
+                        content: "First published version.".to_string(),
+                        ..default::Default::default()
+                    },
+                ]
+            }
+        );
     }
 
     #[test]
     fn parse_releases_public_repo() {
-        let xml_str =
-r#"<?xml version="1.0" encoding="UTF-8"?>
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
 <releases>
     <release version="2.1.0" tag="2.1.0" url="https://github.com/ARM-software/CMSIS-Driver/archive/2.1.0.zip">
       Added LAN9220 Ethernet MAC+PHY driver.
@@ -298,28 +301,38 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
 
         let releases: Releases = serde_roxmltree::from_str(xml_str).unwrap();
 
-        assert_eq!(releases, Releases { release: vec![
-            Release {
-                version: "2.1.0".to_string(),
-                tag: Some("2.1.0".to_string()),
-                url: Some("https://github.com/ARM-software/CMSIS-Driver/archive/2.1.0.zip".to_string()),
-                content: "\n      Added LAN9220 Ethernet MAC+PHY driver.\n    ".to_string(),
-                ..default::Default::default()
-            },
-            Release {
-                version: "2.0.0".to_string(),
-                tag: Some("2.0.0".to_string()),
-                url: Some("https://github.com/ARM-software/CMSIS-Driver/archive/2.0.0.zip".to_string()),
-                content: "\n      First published version.\n    ".to_string(),
-                ..default::Default::default()
-            },
-        ]});
+        assert_eq!(
+            releases,
+            Releases {
+                release: vec![
+                    Release {
+                        version: "2.1.0".to_string(),
+                        tag: Some("2.1.0".to_string()),
+                        url: Some(
+                            "https://github.com/ARM-software/CMSIS-Driver/archive/2.1.0.zip"
+                                .to_string()
+                        ),
+                        content: "\n      Added LAN9220 Ethernet MAC+PHY driver.\n    ".to_string(),
+                        ..default::Default::default()
+                    },
+                    Release {
+                        version: "2.0.0".to_string(),
+                        tag: Some("2.0.0".to_string()),
+                        url: Some(
+                            "https://github.com/ARM-software/CMSIS-Driver/archive/2.0.0.zip"
+                                .to_string()
+                        ),
+                        content: "\n      First published version.\n    ".to_string(),
+                        ..default::Default::default()
+                    },
+                ]
+            }
+        );
     }
 
     #[test]
     fn parse_releases_deprecated() {
-        let xml_str =
-r#"<?xml version="1.0" encoding="UTF-8"?>
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
 <releases>
   <release version="1.0.1" date="2020-04-18" deprecated="2020-04-18" replacement="Vendor.pack_name">
   </release>
@@ -329,22 +342,27 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
 
         let releases: Releases = serde_roxmltree::from_str(xml_str).unwrap();
 
-        assert_eq!(releases, Releases { release: vec![
-            Release {
-                version: "1.0.1".to_string(),
-                date: Some("2020-04-18".to_string()),
-                deprecated: Some("2020-04-18".to_string()),
-                replacement: Some("Vendor.pack_name".to_string()),
-                content: "\n  ".to_string(),
-                ..default::Default::default()
-            },
-            Release {
-                version: "1.0.0".to_string(),
-                date: Some("2020-03-24".to_string()),
-                content: "Initial version.\n  ".to_string(),
-                ..default::Default::default()
-            },
-        ]});
+        assert_eq!(
+            releases,
+            Releases {
+                release: vec![
+                    Release {
+                        version: "1.0.1".to_string(),
+                        date: Some("2020-04-18".to_string()),
+                        deprecated: Some("2020-04-18".to_string()),
+                        replacement: Some("Vendor.pack_name".to_string()),
+                        content: "\n  ".to_string(),
+                        ..default::Default::default()
+                    },
+                    Release {
+                        version: "1.0.0".to_string(),
+                        date: Some("2020-03-24".to_string()),
+                        content: "Initial version.\n  ".to_string(),
+                        ..default::Default::default()
+                    },
+                ]
+            }
+        );
     }
 
     #[test]

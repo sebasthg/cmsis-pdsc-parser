@@ -98,7 +98,9 @@ impl TryFrom<&str> for CclassType {
 
 impl TryFrom<String> for CclassType {
     type Error = ();
-    fn try_from(s: String) -> Result<Self, Self::Error> { Self::try_from(s.as_str()) }
+    fn try_from(s: String) -> Result<Self, Self::Error> {
+        Self::try_from(s.as_str())
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
@@ -135,7 +137,9 @@ impl TryFrom<&str> for CgroupType {
 
 impl TryFrom<String> for CgroupType {
     type Error = ();
-    fn try_from(s: String) -> Result<Self, Self::Error> { Self::try_from(s.as_str()) }
+    fn try_from(s: String) -> Result<Self, Self::Error> {
+        Self::try_from(s.as_str())
+    }
 }
 
 #[cfg(test)]
@@ -154,22 +158,28 @@ mod tests {
         let taxonomy: Taxonomy = serde_roxmltree::from_str(xml_str).unwrap();
         assert_eq!(taxonomy.descriptions.len(), 2);
 
-        assert_eq!(taxonomy.descriptions[0], TaxonomyDescription {
-            class: "Device".to_string(),
-            group: Some("Startup".to_string()),
-            doc: Some("Device/Doc/startup.htm".to_string()),
-            generator: Some("MyGen".to_string()),
-            public: Some(true),
-            content: "ARM Cortex-M device startup".to_string(),
-        });
-        assert_eq!(taxonomy.descriptions[1], TaxonomyDescription {
-            class: "Board Support".to_string(),
-            group: None,
-            doc: None,
-            generator: None,
-            public: None,
-            content: "".to_string(),
-        });
+        assert_eq!(
+            taxonomy.descriptions[0],
+            TaxonomyDescription {
+                class: "Device".to_string(),
+                group: Some("Startup".to_string()),
+                doc: Some("Device/Doc/startup.htm".to_string()),
+                generator: Some("MyGen".to_string()),
+                public: Some(true),
+                content: "ARM Cortex-M device startup".to_string(),
+            }
+        );
+        assert_eq!(
+            taxonomy.descriptions[1],
+            TaxonomyDescription {
+                class: "Board Support".to_string(),
+                group: None,
+                doc: None,
+                generator: None,
+                public: None,
+                content: "".to_string(),
+            }
+        );
     }
 
     #[test]
@@ -212,10 +222,16 @@ mod tests {
 
         assert_eq!(CclassType::try_from("Audio"), Ok(CclassType::Audio));
         assert_eq!(CclassType::try_from("CMSIS"), Ok(CclassType::Cmsis));
-        assert_eq!(CclassType::try_from("CMSIS Driver"), Ok(CclassType::CmsisDriver));
+        assert_eq!(
+            CclassType::try_from("CMSIS Driver"),
+            Ok(CclassType::CmsisDriver)
+        );
         assert_eq!(CclassType::try_from("RTOS"), Ok(CclassType::Rtos));
         assert_eq!(CclassType::try_from("USB"), Ok(CclassType::Usb));
-        assert_eq!(CclassType::try_from("IoT Client"), Ok(CclassType::IotClient));
+        assert_eq!(
+            CclassType::try_from("IoT Client"),
+            Ok(CclassType::IotClient)
+        );
         assert_eq!(CclassType::try_from("Unknown Class"), Err(()));
 
         let s = "Board Support".to_string();

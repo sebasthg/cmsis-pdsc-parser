@@ -244,9 +244,7 @@ pub struct ComponentEnvironment {
 
 #[cfg(test)]
 mod tests {
-    use crate::components::{
-        ComponentEnvironment, ComponentExtension, ComponentFile, Components,
-    };
+    use crate::components::{ComponentEnvironment, ComponentExtension, ComponentFile, Components};
 
     #[test]
     fn parse_components() {
@@ -305,10 +303,13 @@ mod tests {
         assert_eq!(c.rte_components_h, None);
         assert_eq!(c.files.files.len(), 2);
         assert_eq!(c.extensions.extensions.len(), 1);
-        assert_eq!(c.extensions.extensions[0], ComponentExtension {
-            key: "schemaVersion".to_string(),
-            value: Some("1.0".to_string()),
-        });
+        assert_eq!(
+            c.extensions.extensions[0],
+            ComponentExtension {
+                key: "schemaVersion".to_string(),
+                value: Some("1.0".to_string()),
+            }
+        );
         assert_eq!(c.environments, None);
 
         let b = &cs.bundles[0];
@@ -390,7 +391,10 @@ mod tests {
         assert_eq!(c1.version, Some("1.10.1".to_string()));
         assert_eq!(c1.is_default_variant, Some(true));
         assert_eq!(c1.extensions.extensions[0].key, "dsplicense");
-        assert_eq!(c1.extensions.extensions[0].value, Some("Apache-2.0".to_string()));
+        assert_eq!(
+            c1.extensions.extensions[0].value,
+            Some("Apache-2.0".to_string())
+        );
     }
 
     #[test]
@@ -429,21 +433,36 @@ mod tests {
         assert_eq!(c.variant, Some("Device".to_string()));
         assert_eq!(c.version, Some("6.15.0".to_string()));
         assert_eq!(c.deprecated, Some(true));
-        assert_eq!(c.description, "USB Device stack (deprecated; use MDK-Middleware instead)");
+        assert_eq!(
+            c.description,
+            "USB Device stack (deprecated; use MDK-Middleware instead)"
+        );
         assert_eq!(c.rte_components_h, Some("#define RTE_USB_CORE".to_string()));
-        assert_eq!(c.pre_include_global_h, Some("#include \"usb_config.h\"".to_string()));
+        assert_eq!(
+            c.pre_include_global_h,
+            Some("#include \"usb_config.h\"".to_string())
+        );
         assert_eq!(c.pre_include_local_component_h, None);
 
         let files = &c.files.files;
         assert_eq!(files.len(), 4);
-        assert_eq!(files[0], ComponentFile {
-            name: "USB/Include/rl_usb.h".to_string(),
-            category: "header".to_string(),
-            attr: None, condition: None, version: None, select: None,
-            src: None, path: None, language: None,
-            scope: Some("public".to_string()),
-            public: None, projectpath: None,
-        });
+        assert_eq!(
+            files[0],
+            ComponentFile {
+                name: "USB/Include/rl_usb.h".to_string(),
+                category: "header".to_string(),
+                attr: None,
+                condition: None,
+                version: None,
+                select: None,
+                src: None,
+                path: None,
+                language: None,
+                scope: Some("public".to_string()),
+                public: None,
+                projectpath: None,
+            }
+        );
         assert_eq!(files[1].attr, Some("config".to_string()));
         assert_eq!(files[1].version, Some("6.15.0".to_string()));
         assert_eq!(files[1].select, Some("USB Config".to_string()));
@@ -452,18 +471,36 @@ mod tests {
         assert_eq!(files[2].language, Some("c".to_string()));
         assert_eq!(files[2].public, Some(false));
         assert_eq!(files[2].projectpath, Some("USB/Source".to_string()));
-        assert_eq!(files[3].name, "https://www.keil.com/pack/doc/mw/USB/html/index.html");
+        assert_eq!(
+            files[3].name,
+            "https://www.keil.com/pack/doc/mw/USB/html/index.html"
+        );
         assert_eq!(files[3].category, "doc");
 
         let exts = &c.extensions.extensions;
         assert_eq!(exts.len(), 2);
-        assert_eq!(exts[0], ComponentExtension { key: "schemaVersion".to_string(), value: Some("2.0".to_string()) });
-        assert_eq!(exts[1], ComponentExtension { key: "category".to_string(), value: Some("middleware".to_string()) });
+        assert_eq!(
+            exts[0],
+            ComponentExtension {
+                key: "schemaVersion".to_string(),
+                value: Some("2.0".to_string())
+            }
+        );
+        assert_eq!(
+            exts[1],
+            ComponentExtension {
+                key: "category".to_string(),
+                value: Some("middleware".to_string())
+            }
+        );
 
         let envs = c.environments.as_ref().unwrap();
-        assert_eq!(envs.environments, vec![ComponentEnvironment {
-            name: "uv".to_string(),
-            processor_name: Some("Core0".to_string()),
-        }]);
+        assert_eq!(
+            envs.environments,
+            vec![ComponentEnvironment {
+                name: "uv".to_string(),
+                processor_name: Some("Core0".to_string()),
+            }]
+        );
     }
 }

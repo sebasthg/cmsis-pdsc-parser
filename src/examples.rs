@@ -192,38 +192,50 @@ mod tests {
         assert_eq!(e0.version, Some("1.2.0".to_string()));
         assert_eq!(e0.public, Some(true));
         assert_eq!(e0.description, "Blinky LED example for Cortex-M4");
-        assert_eq!(e0.boards, vec![ExampleBoard {
-            vendor: "STMicroelectronics".to_string(),
-            name: "NUCLEO-F401RE".to_string(),
-            device_vendor: Some("STMicroelectronics:13".to_string()),
-            device_family: None,
-            device_sub_family: None,
-            device_name: Some("STM32F401RETx".to_string()),
-        }]);
-        assert_eq!(e0.project, ExampleProject {
-            environments: vec![
-                ExampleEnvironment {
-                    name: "uv".to_string(),
-                    load: "Blinky.uvprojx".to_string(),
-                    folder: None,
-                },
-                ExampleEnvironment {
-                    name: "csolution".to_string(),
-                    load: "Blinky.csolution.yml".to_string(),
-                    folder: Some("csolution".to_string()),
-                },
-            ],
-        });
+        assert_eq!(
+            e0.boards,
+            vec![ExampleBoard {
+                vendor: "STMicroelectronics".to_string(),
+                name: "NUCLEO-F401RE".to_string(),
+                device_vendor: Some("STMicroelectronics:13".to_string()),
+                device_family: None,
+                device_sub_family: None,
+                device_name: Some("STM32F401RETx".to_string()),
+            }]
+        );
+        assert_eq!(
+            e0.project,
+            ExampleProject {
+                environments: vec![
+                    ExampleEnvironment {
+                        name: "uv".to_string(),
+                        load: "Blinky.uvprojx".to_string(),
+                        folder: None,
+                    },
+                    ExampleEnvironment {
+                        name: "csolution".to_string(),
+                        load: "Blinky.csolution.yml".to_string(),
+                        folder: Some("csolution".to_string()),
+                    },
+                ],
+            }
+        );
         let attrs = e0.attributes.as_ref().unwrap();
         assert_eq!(attrs.categories, vec!["Getting Started".to_string()]);
-        assert_eq!(attrs.components, vec![ExampleComponent {
-            class: "CMSIS".to_string(),
-            group: Some("RTOS2".to_string()),
-            sub: None,
-            version: Some("2.0.0".to_string()),
-            vendor: Some("ARM".to_string()),
-        }]);
-        assert_eq!(attrs.keywords, vec!["LED".to_string(), "Blinky".to_string()]);
+        assert_eq!(
+            attrs.components,
+            vec![ExampleComponent {
+                class: "CMSIS".to_string(),
+                group: Some("RTOS2".to_string()),
+                sub: None,
+                version: Some("2.0.0".to_string()),
+                vendor: Some("ARM".to_string()),
+            }]
+        );
+        assert_eq!(
+            attrs.keywords,
+            vec!["LED".to_string(), "Blinky".to_string()]
+        );
 
         let e1 = &examples.examples[1];
         assert_eq!(e1.name, "Hello");
@@ -287,23 +299,29 @@ mod tests {
         let e = &examples.examples[0];
         let attrs = e.attributes.as_ref().unwrap();
 
-        assert_eq!(attrs.categories, vec!["Middleware".to_string(), "Networking".to_string()]);
-        assert_eq!(attrs.components, vec![
-            ExampleComponent {
-                class: "Network".to_string(),
-                group: Some("Core".to_string()),
-                sub: Some("IPv4".to_string()),
-                version: Some("7.15.0".to_string()),
-                vendor: Some("Keil".to_string()),
-            },
-            ExampleComponent {
-                class: "CMSIS".to_string(),
-                group: None,
-                sub: None,
-                version: None,
-                vendor: None,
-            },
-        ]);
+        assert_eq!(
+            attrs.categories,
+            vec!["Middleware".to_string(), "Networking".to_string()]
+        );
+        assert_eq!(
+            attrs.components,
+            vec![
+                ExampleComponent {
+                    class: "Network".to_string(),
+                    group: Some("Core".to_string()),
+                    sub: Some("IPv4".to_string()),
+                    version: Some("7.15.0".to_string()),
+                    vendor: Some("Keil".to_string()),
+                },
+                ExampleComponent {
+                    class: "CMSIS".to_string(),
+                    group: None,
+                    sub: None,
+                    version: None,
+                    vendor: None,
+                },
+            ]
+        );
         assert_eq!(attrs.keywords, vec!["TCP/IP".to_string()]);
     }
 }

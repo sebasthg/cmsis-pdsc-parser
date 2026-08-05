@@ -23,28 +23,28 @@ pub struct Requirements {
 /// Wrapper type for the `packages` xml element
 pub struct PackagesList {
     #[serde(rename = "package")]
-    pub packages: Vec<Package>
+    pub packages: Vec<Package>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Wrapper type for the `compilers` xml element
 pub struct CompilersList {
     #[serde(rename = "compiler")]
-    pub compilers: Vec<Compiler>
+    pub compilers: Vec<Compiler>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Wrapper type for the `languages` xml element
 pub struct LanguagesList {
     #[serde(rename = "language")]
-    pub languages: Vec<Language>
+    pub languages: Vec<Language>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Wrapper type for the `targets` xml element
 pub struct TargetsList {
     #[serde(rename = "target")]
-    pub targets: Vec<Target>
+    pub targets: Vec<Target>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
@@ -57,7 +57,7 @@ pub struct Package {
     pub name: String,
 
     /// Version of the required pack; pattern: `VersionType` (e.g. `1.2.3` or `>=1.0.0`)
-    pub version: Option<String>
+    pub version: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
@@ -77,7 +77,7 @@ pub struct Language {
     pub name: String,
 
     /// Version of the language standard
-    pub version: String
+    pub version: String,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
@@ -105,13 +105,15 @@ pub struct Target {
 
     #[serde(rename = "Brevision")]
     /// Specifies the board revision
-    pub board_revision: Option<String>
+    pub board_revision: Option<String>,
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::requirements::{Compiler, CompilersList, Language, LanguagesList, Package, PackagesList, Requirements, Target, TargetsList};
-
+    use crate::requirements::{
+        Compiler, CompilersList, Language, LanguagesList, Package, PackagesList, Requirements,
+        Target, TargetsList,
+    };
 
     #[test]
     fn isolate_fields() {
@@ -133,8 +135,7 @@ mod tests {
     #[test]
     /// Test that all requiremets fields parse correctly
     fn parse_requirements() {
-        let xml_str =
-r#"<?xml version="1.0" encoding="UTF-8"?>
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
 <requirements>
     <packages>
         <package name="STM32F4xx_DFP" vendor="Keil" version="2.8.0:2.8.0"/>
@@ -153,42 +154,56 @@ r#"<?xml version="1.0" encoding="UTF-8"?>
 
         let requirements: Requirements = serde_roxmltree::from_str(xml_str).unwrap();
 
-        assert_eq!(requirements.packages, Some(PackagesList { packages: vec![
-            Package {
-                name: "STM32F4xx_DFP".to_string(),
-                vendor: "Keil".to_string(),
-                version: Some("2.8.0:2.8.0".to_string())
-            }
-        ]}));
-        assert_eq!(requirements.compilers, Some(CompilersList { compilers: vec![
-            Compiler {
-                name: "ARMCC".to_string(),
-                version: "5.0.0:6.0.0-0".to_string()
-            }
-        ]}));
-        assert_eq!(requirements.languages, Some(LanguagesList { languages: vec![
-            Language {
-                name: "C".to_string(),
-                version: "99".to_string()
-            }
-        ]}));
-        assert_eq!(requirements.targets, Some(TargetsList { targets: vec![
-            Target {
-                device_vendor: Some("STMicroelectronics:13".to_string()),
-                device_name: Some("STM32H7*".to_string()),
-                device_core: None,
-                board_name: None,
-                board_revision: None,
-                board_vendor: None
-            },
-            Target {
-                device_vendor: Some("STMicroelectronics:13".to_string()),
-                device_name: Some("STM32U585".to_string()),
-                device_core: None,
-                board_name: None,
-                board_revision: None,
-                board_vendor: None
-            }
-        ]}));
+        assert_eq!(
+            requirements.packages,
+            Some(PackagesList {
+                packages: vec![Package {
+                    name: "STM32F4xx_DFP".to_string(),
+                    vendor: "Keil".to_string(),
+                    version: Some("2.8.0:2.8.0".to_string())
+                }]
+            })
+        );
+        assert_eq!(
+            requirements.compilers,
+            Some(CompilersList {
+                compilers: vec![Compiler {
+                    name: "ARMCC".to_string(),
+                    version: "5.0.0:6.0.0-0".to_string()
+                }]
+            })
+        );
+        assert_eq!(
+            requirements.languages,
+            Some(LanguagesList {
+                languages: vec![Language {
+                    name: "C".to_string(),
+                    version: "99".to_string()
+                }]
+            })
+        );
+        assert_eq!(
+            requirements.targets,
+            Some(TargetsList {
+                targets: vec![
+                    Target {
+                        device_vendor: Some("STMicroelectronics:13".to_string()),
+                        device_name: Some("STM32H7*".to_string()),
+                        device_core: None,
+                        board_name: None,
+                        board_revision: None,
+                        board_vendor: None
+                    },
+                    Target {
+                        device_vendor: Some("STMicroelectronics:13".to_string()),
+                        device_name: Some("STM32U585".to_string()),
+                        device_core: None,
+                        board_name: None,
+                        board_revision: None,
+                        board_vendor: None
+                    }
+                ]
+            })
+        );
     }
 }

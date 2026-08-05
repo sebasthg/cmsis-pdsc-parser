@@ -66,7 +66,7 @@ pub struct CsolutionTemplate {
 
 #[cfg(test)]
 mod tests {
-    use crate::csolution::{Clayer, CsolutionTemplate, Csolution};
+    use crate::csolution::{Clayer, Csolution, CsolutionTemplate};
 
     #[test]
     fn parse_csolution() {
@@ -87,38 +87,50 @@ mod tests {
         let cs: Csolution = serde_roxmltree::from_str(xml_str).unwrap();
 
         assert_eq!(cs.clayers.len(), 2);
-        assert_eq!(cs.clayers[0], Clayer {
-            layer_type: "Board".to_string(),
-            path: "layers/board".to_string(),
-            file: "Board.clayer.yml".to_string(),
-            copy_to: Some("Board".to_string()),
-            condition: Some("CM4".to_string()),
-        });
-        assert_eq!(cs.clayers[1], Clayer {
-            layer_type: "Shield".to_string(),
-            path: "layers/shield".to_string(),
-            file: "Shield.clayer.yml".to_string(),
-            copy_to: None,
-            condition: None,
-        });
+        assert_eq!(
+            cs.clayers[0],
+            Clayer {
+                layer_type: "Board".to_string(),
+                path: "layers/board".to_string(),
+                file: "Board.clayer.yml".to_string(),
+                copy_to: Some("Board".to_string()),
+                condition: Some("CM4".to_string()),
+            }
+        );
+        assert_eq!(
+            cs.clayers[1],
+            Clayer {
+                layer_type: "Shield".to_string(),
+                path: "layers/shield".to_string(),
+                file: "Shield.clayer.yml".to_string(),
+                copy_to: None,
+                condition: None,
+            }
+        );
 
         assert_eq!(cs.templates.len(), 2);
-        assert_eq!(cs.templates[0], CsolutionTemplate {
-            name: "Blinky".to_string(),
-            path: "templates/Blinky".to_string(),
-            file: "Blinky.csolution.yml".to_string(),
-            copy_to: Some("MyBlinky".to_string()),
-            condition: Some("GCC".to_string()),
-            description: "Simple LED blinking template".to_string(),
-        });
-        assert_eq!(cs.templates[1], CsolutionTemplate {
-            name: "Empty".to_string(),
-            path: "templates/Empty".to_string(),
-            file: "Empty.csolution.yml".to_string(),
-            copy_to: None,
-            condition: None,
-            description: "Minimal empty project".to_string(),
-        });
+        assert_eq!(
+            cs.templates[0],
+            CsolutionTemplate {
+                name: "Blinky".to_string(),
+                path: "templates/Blinky".to_string(),
+                file: "Blinky.csolution.yml".to_string(),
+                copy_to: Some("MyBlinky".to_string()),
+                condition: Some("GCC".to_string()),
+                description: "Simple LED blinking template".to_string(),
+            }
+        );
+        assert_eq!(
+            cs.templates[1],
+            CsolutionTemplate {
+                name: "Empty".to_string(),
+                path: "templates/Empty".to_string(),
+                file: "Empty.csolution.yml".to_string(),
+                copy_to: None,
+                condition: None,
+                description: "Minimal empty project".to_string(),
+            }
+        );
     }
 
     #[test]

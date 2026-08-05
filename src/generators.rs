@@ -61,7 +61,6 @@ pub struct Generator {
 
     /// Deprecated; use `exe.argument` inside `exe` instead
     pub arguments: Option<GeneratorArguments>,
-
     // TODO: extensions — vendor-specific extension section, requires RawNode handling
 }
 
@@ -223,8 +222,7 @@ pub struct GeneratorArguments {
 #[cfg(test)]
 mod tests {
     use crate::generators::{
-        Argument, Command, Eclipse, Exe, File, Files, Generators,
-        Gpdsc, ProjectFiles, Select, Web,
+        Argument, Command, Eclipse, Exe, File, Files, Generators, Gpdsc, ProjectFiles, Select, Web,
     };
 
     #[test]
@@ -256,43 +254,75 @@ mod tests {
 
         let generator = &generators.generators[0];
         assert_eq!(generator.id, "STCubeMX");
-        assert_eq!(generator.generator_vendor, Some("STMicroelectronics".to_string()));
+        assert_eq!(
+            generator.generator_vendor,
+            Some("STMicroelectronics".to_string())
+        );
         assert_eq!(generator.generator_tool, Some("STM32CubeMX".to_string()));
         assert_eq!(generator.generator_version, Some("6.0.0".to_string()));
-        assert_eq!(generator.description, Some("STM32CubeMX code generator".to_string()));
+        assert_eq!(
+            generator.description,
+            Some("STM32CubeMX code generator".to_string())
+        );
         assert_eq!(generator.working_dir, Some("$P".to_string()));
-        assert_eq!(generator.select, Some(Select {
-            device_vendor: "STMicroelectronics:13".to_string(),
-            device_name: Some("STM32*".to_string()),
-            device_variant: None,
-            processor_name: Some("Cortex-M4".to_string()),
-        }));
-        assert_eq!(generator.gpdsc, Some(Gpdsc { name: "$P/MyProject.gpdsc".to_string() }));
-        assert_eq!(generator.exe, Some(Exe {
-            commands: vec![
-                Command { host: Some("win".to_string()), command: "$S/CubeMX/cubemx.exe".to_string() },
-                Command { host: Some("linux".to_string()), command: "$S/CubeMX/cubemx".to_string() },
-            ],
-            arguments: vec![
-                Argument { mode: None, host: None, switch: Some("--project".to_string()), value: "$P".to_string() },
-            ],
-        }));
-        assert_eq!(generator.project_files, Some(ProjectFiles {
-            files: vec![File {
-                name: "main.c".to_string(),
-                category: "sourceC".to_string(),
-                condition: None,
-                version: None,
-            }],
-        }));
-        assert_eq!(generator.files, Some(Files {
-            files: vec![File {
-                name: "cubemx.exe".to_string(),
-                category: "other".to_string(),
-                condition: Some("Win".to_string()),
-                version: Some("6.0.0".to_string()),
-            }],
-        }));
+        assert_eq!(
+            generator.select,
+            Some(Select {
+                device_vendor: "STMicroelectronics:13".to_string(),
+                device_name: Some("STM32*".to_string()),
+                device_variant: None,
+                processor_name: Some("Cortex-M4".to_string()),
+            })
+        );
+        assert_eq!(
+            generator.gpdsc,
+            Some(Gpdsc {
+                name: "$P/MyProject.gpdsc".to_string()
+            })
+        );
+        assert_eq!(
+            generator.exe,
+            Some(Exe {
+                commands: vec![
+                    Command {
+                        host: Some("win".to_string()),
+                        command: "$S/CubeMX/cubemx.exe".to_string()
+                    },
+                    Command {
+                        host: Some("linux".to_string()),
+                        command: "$S/CubeMX/cubemx".to_string()
+                    },
+                ],
+                arguments: vec![Argument {
+                    mode: None,
+                    host: None,
+                    switch: Some("--project".to_string()),
+                    value: "$P".to_string()
+                },],
+            })
+        );
+        assert_eq!(
+            generator.project_files,
+            Some(ProjectFiles {
+                files: vec![File {
+                    name: "main.c".to_string(),
+                    category: "sourceC".to_string(),
+                    condition: None,
+                    version: None,
+                }],
+            })
+        );
+        assert_eq!(
+            generator.files,
+            Some(Files {
+                files: vec![File {
+                    name: "cubemx.exe".to_string(),
+                    category: "other".to_string(),
+                    condition: Some("Win".to_string()),
+                    version: Some("6.0.0".to_string()),
+                }],
+            })
+        );
         assert_eq!(generator.eclipse, None);
         assert_eq!(generator.web, None);
     }
@@ -313,15 +343,28 @@ mod tests {
         let generator = &generators.generators[0];
 
         assert_eq!(generator.id, "MyEclipseGen");
-        assert_eq!(generator.eclipse, Some(Eclipse {
-            plugin: "com.example.generator".to_string(),
-            class: "com.example.Generator".to_string(),
-            method: "generate".to_string(),
-            arguments: vec![
-                Argument { mode: None, host: None, switch: Some("--device".to_string()), value: "$D".to_string() },
-                Argument { mode: Some("dry-run".to_string()), host: None, switch: None, value: "--dry-run".to_string() },
-            ],
-        }));
+        assert_eq!(
+            generator.eclipse,
+            Some(Eclipse {
+                plugin: "com.example.generator".to_string(),
+                class: "com.example.Generator".to_string(),
+                method: "generate".to_string(),
+                arguments: vec![
+                    Argument {
+                        mode: None,
+                        host: None,
+                        switch: Some("--device".to_string()),
+                        value: "$D".to_string()
+                    },
+                    Argument {
+                        mode: Some("dry-run".to_string()),
+                        host: None,
+                        switch: None,
+                        value: "--dry-run".to_string()
+                    },
+                ],
+            })
+        );
         assert_eq!(generator.exe, None);
         assert_eq!(generator.web, None);
     }
@@ -341,12 +384,18 @@ mod tests {
         let generator = &generators.generators[0];
 
         assert_eq!(generator.id, "MyWebGen");
-        assert_eq!(generator.web, Some(Web {
-            url: "https://generator.example.com/api".to_string(),
-            arguments: vec![
-                Argument { mode: None, host: None, switch: Some("--board".to_string()), value: "$B".to_string() },
-            ],
-        }));
+        assert_eq!(
+            generator.web,
+            Some(Web {
+                url: "https://generator.example.com/api".to_string(),
+                arguments: vec![Argument {
+                    mode: None,
+                    host: None,
+                    switch: Some("--board".to_string()),
+                    value: "$B".to_string()
+                },],
+            })
+        );
         assert_eq!(generator.exe, None);
         assert_eq!(generator.eclipse, None);
     }
@@ -373,11 +422,14 @@ mod tests {
         let generator = &generators.generators[0];
         assert_eq!(generator.id, "OldStyleGen");
         assert_eq!(generator.command, Some("$S/tools/oldgen".to_string()));
-        let args = generator.arguments.as_ref().expect("arguments should be present");
-        assert_eq!(args.argument, vec![
-            "--project".to_string(),
-            "$P".to_string(),
-        ]);
+        let args = generator
+            .arguments
+            .as_ref()
+            .expect("arguments should be present");
+        assert_eq!(
+            args.argument,
+            vec!["--project".to_string(), "$P".to_string(),]
+        );
         assert_eq!(generator.exe, None);
     }
 }

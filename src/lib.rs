@@ -36,22 +36,22 @@
 //! }
 //! ```
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
-pub mod pdsc;
-pub mod family;
-pub mod debug_access;
-pub mod requirements;
-pub mod generators;
-pub mod boards;
-pub mod parts;
-pub mod taxonomy;
-pub mod part_taxonomy;
 pub mod apis;
+pub mod boards;
 pub mod components;
 pub mod conditions;
 pub mod csolution;
+pub mod debug_access;
 pub mod examples;
+pub mod family;
+pub mod generators;
+pub mod part_taxonomy;
+pub mod parts;
+pub mod pdsc;
+pub mod requirements;
+pub mod taxonomy;
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
 /// Represents [PDSC Package](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_package_pg.html)
@@ -108,7 +108,6 @@ pub struct Package<'a> {
     pub requirements: Option<requirements::Requirements>,
 
     // The deprecated `create` element is intentionally not modelled.
-
     /// HTTPS URL of a public repository tat the pack originates from
     pub repository: Option<pdsc::Repository>,
 
@@ -199,7 +198,7 @@ impl<'a> Package<'a> {
 pub enum Error {
     SerdeRoxmltree(serde_roxmltree::Error),
     Family(family::FamilyParseError),
-    Debug(debug_access::DebugAccessParseError)
+    Debug(debug_access::DebugAccessParseError),
 }
 
 impl std::fmt::Display for Error {

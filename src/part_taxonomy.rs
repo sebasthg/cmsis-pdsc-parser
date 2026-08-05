@@ -120,7 +120,9 @@ impl TryFrom<&str> for HclassType {
 
 impl TryFrom<String> for HclassType {
     type Error = ();
-    fn try_from(s: String) -> Result<Self, Self::Error> { Self::try_from(s.as_str()) }
+    fn try_from(s: String) -> Result<Self, Self::Error> {
+        Self::try_from(s.as_str())
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
@@ -396,7 +398,9 @@ impl TryFrom<&str> for HgroupType {
 
 impl TryFrom<String> for HgroupType {
     type Error = ();
-    fn try_from(s: String) -> Result<Self, Self::Error> { Self::try_from(s.as_str()) }
+    fn try_from(s: String) -> Result<Self, Self::Error> {
+        Self::try_from(s.as_str())
+    }
 }
 
 #[cfg(test)]
@@ -415,22 +419,28 @@ mod tests {
         let pt: PartTaxonomy = serde_roxmltree::from_str(xml_str).unwrap();
         assert_eq!(pt.descriptions.len(), 2);
 
-        assert_eq!(pt.descriptions[0], PartTaxonomyDescription {
-            class: "Microcontroller".to_string(),
-            group: Some("ARM Cortex-M".to_string()),
-            doc: Some("Docs/MCU/index.html".to_string()),
-            generator: Some("MyGen".to_string()),
-            public: Some(true),
-            content: "ARM Cortex-M microcontrollers".to_string(),
-        });
-        assert_eq!(pt.descriptions[1], PartTaxonomyDescription {
-            class: "Memory".to_string(),
-            group: None,
-            doc: None,
-            generator: None,
-            public: None,
-            content: "".to_string(),
-        });
+        assert_eq!(
+            pt.descriptions[0],
+            PartTaxonomyDescription {
+                class: "Microcontroller".to_string(),
+                group: Some("ARM Cortex-M".to_string()),
+                doc: Some("Docs/MCU/index.html".to_string()),
+                generator: Some("MyGen".to_string()),
+                public: Some(true),
+                content: "ARM Cortex-M microcontrollers".to_string(),
+            }
+        );
+        assert_eq!(
+            pt.descriptions[1],
+            PartTaxonomyDescription {
+                class: "Memory".to_string(),
+                group: None,
+                doc: None,
+                generator: None,
+                public: None,
+                content: "".to_string(),
+            }
+        );
     }
 
     #[test]
@@ -472,10 +482,19 @@ mod tests {
         use crate::part_taxonomy::HclassType;
 
         assert_eq!(HclassType::try_from("Wireless"), Ok(HclassType::Wireless));
-        assert_eq!(HclassType::try_from("MEMS and Sensors"), Ok(HclassType::MemsAndSensors));
+        assert_eq!(
+            HclassType::try_from("MEMS and Sensors"),
+            Ok(HclassType::MemsAndSensors)
+        );
         assert_eq!(HclassType::try_from("NFC"), Ok(HclassType::Nfc));
-        assert_eq!(HclassType::try_from("SiC Devices"), Ok(HclassType::SicDevices));
-        assert_eq!(HclassType::try_from("Thyristors and AC Switches"), Ok(HclassType::ThyristorsAndAcSwitches));
+        assert_eq!(
+            HclassType::try_from("SiC Devices"),
+            Ok(HclassType::SicDevices)
+        );
+        assert_eq!(
+            HclassType::try_from("Thyristors and AC Switches"),
+            Ok(HclassType::ThyristorsAndAcSwitches)
+        );
         assert_eq!(HclassType::try_from("Unknown Class"), Err(()));
 
         let s = "Secure MCUs".to_string();
@@ -487,11 +506,26 @@ mod tests {
         use crate::part_taxonomy::HgroupType;
 
         assert_eq!(HgroupType::try_from("A2D - D2A"), Ok(HgroupType::A2dD2a));
-        assert_eq!(HgroupType::try_from("ADAS (Advanced Driver Assistance Systems)"), Ok(HgroupType::Adas));
-        assert_eq!(HgroupType::try_from("eFuses and hot-swap ICs"), Ok(HgroupType::EFusesAndHotSwapIcs));
-        assert_eq!(HgroupType::try_from("I/O Expanders"), Ok(HgroupType::IoExpanders));
-        assert_eq!(HgroupType::try_from("SiC MOSFETs"), Ok(HgroupType::SicMosfets));
-        assert_eq!(HgroupType::try_from("RF Front-end"), Ok(HgroupType::RfFrontEnd));
+        assert_eq!(
+            HgroupType::try_from("ADAS (Advanced Driver Assistance Systems)"),
+            Ok(HgroupType::Adas)
+        );
+        assert_eq!(
+            HgroupType::try_from("eFuses and hot-swap ICs"),
+            Ok(HgroupType::EFusesAndHotSwapIcs)
+        );
+        assert_eq!(
+            HgroupType::try_from("I/O Expanders"),
+            Ok(HgroupType::IoExpanders)
+        );
+        assert_eq!(
+            HgroupType::try_from("SiC MOSFETs"),
+            Ok(HgroupType::SicMosfets)
+        );
+        assert_eq!(
+            HgroupType::try_from("RF Front-end"),
+            Ok(HgroupType::RfFrontEnd)
+        );
         assert_eq!(HgroupType::try_from("Unknown Group"), Err(()));
 
         let s = "LEO Rad-Hard ICs".to_string();
