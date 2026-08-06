@@ -41,8 +41,9 @@ pub struct Generator {
     /// Path and filename of the generated GPDSC file produced by the tool
     pub gpdsc: Option<Gpdsc>,
 
-    /// Native executable invocation configuration
-    pub exe: Option<Exe>,
+    /// Native executable invocation configuration(s) (0..5)
+    #[serde(default)]
+    pub exe: Vec<Exe>,
 
     /// Eclipse plug-in invocation configuration
     pub eclipse: Option<Eclipse>,
@@ -102,6 +103,9 @@ pub struct Gpdsc {
 /// Defines native executable invocation of the generator tool. Up to four
 /// platform-specific `<command>` entries may be provided.
 pub struct Exe {
+    /// Target host platform this invocation applies to; one of `all` (default), `win`, `linux`, `mac`, `other`
+    pub host: Option<String>,
+
     /// Platform-specific command lines used to invoke the generator (1..4)
     #[serde(rename = "command")]
     pub commands: Vec<Command>,
@@ -127,7 +131,7 @@ pub struct Eclipse {
 
     /// Arguments passed to the Eclipse plug-in method
     #[serde(rename = "argument")]
-    pub arguments: Vec<Argument>,
+    pub arguments: Vec<EclipseArgument>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
@@ -140,7 +144,7 @@ pub struct Web {
 
     /// Query parameters or arguments passed to the web service
     #[serde(rename = "argument", default)]
-    pub arguments: Vec<Argument>,
+    pub arguments: Vec<WebArgument>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
@@ -159,17 +163,44 @@ pub struct Command {
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents a [PDSC argument](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_generators_pg.html#element_gen_argument) element
 ///
-/// A single argument passed to an `exe`, `eclipse`, or `web` invocation.
+/// A single argument passed to an `exe` invocation.
 pub struct Argument {
     /// Invocation mode; one of `normal` (default) or `dry-run`
     pub mode: Option<String>,
 
-    /// Target host platform (exe only); one of `all`, `win`, `linux`, `mac`, `other`
+    /// Target host platform; one of `all` (default), `win`, `linux`, `mac`, `other`
     pub host: Option<String>,
 
     /// Command-line switch prefix prepended to the argument value (e.g. `"--project"`)
     pub switch: Option<String>,
 
+    /// The argument value; supports substitution variables
+    #[serde(rename = "#content")]
+    pub value: String,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
+/// Represents a [PDSC argument](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_generators_pg.html#element_gen_argument) element
+/// for a `web` invocation
+///
+/// Unlike [`Argument`], the web generator argument has no `host` or `mode`, and
+/// `switch` is required rather than optional.
+pub struct WebArgument {
+    /// Command-line switch prefix prepended to the argument value (e.g. `"--board"`); required
+    pub switch: String,
+
+    /// The argument value; supports substitution variables
+    #[serde(rename = "#content")]
+    pub value: String,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
+/// Represents a [PDSC argument](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_generators_pg.html#element_gen_argument) element
+/// for an `eclipse` invocation
+///
+/// Unlike [`Argument`], the eclipse generator argument has no attributes at all;
+/// it consists solely of text content.
+pub struct EclipseArgument {
     /// The argument value; supports substitution variables
     #[serde(rename = "#content")]
     pub value: String,
@@ -182,7 +213,7 @@ pub struct Argument {
 pub struct ProjectFiles {
     /// Generated files to add to the project after generation completes
     #[serde(rename = "file", default)]
-    pub files: Vec<File>,
+    pub files: Vec<ProjectFile>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
@@ -196,7 +227,10 @@ pub struct Files {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
-/// Represents a [PDSC file](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_generators_pg.html#element_gen_file) entry in [`ProjectFiles`] or [`Files`]
+/// Represents a [PDSC file](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_generators_pg.html#element_gen_file) entry in [`Files`]
+///
+/// Attributes follow the narrow PDSC `GeneratorFileType` definition (generator tool files
+/// are under sole control of the generator).
 pub struct File {
     /// File path relative to the pack base directory; supports substitution variables
     pub name: String,
@@ -212,6 +246,52 @@ pub struct File {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
+/// Represents a [PDSC file](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_generators_pg.html#element_gen_file) entry in [`ProjectFiles`]
+///
+/// Unlike [`File`], `project_files` entries follow the full shared PDSC `FileType`
+/// definition (the same type used for `<file>` elements under components and APIs).
+pub struct ProjectFile {
+    /// References a condition ID; file included only when condition evaluates true
+    pub condition: Option<String>,
+
+    /// File category (e.g. `header`, `sourceC`, `doc`, `library`)
+    pub category: String,
+
+    /// Target compiler/assembler (`c`, `cpp`, `c-cpp`, `asm`, `link`); inferred from extension if absent
+    pub language: Option<String>,
+
+    /// Header visibility (`public` or `private`); default is `public`
+    pub scope: Option<String>,
+
+    /// Special handling: `config` (copied to project, user-editable) or `template`
+    pub attr: Option<String>,
+
+    /// Description/purpose required when `attr="template"`; groups template options
+    pub select: Option<String>,
+
+    /// File path relative to the pack root; may be a URL for `category="doc"`
+    pub name: String,
+
+    /// For `category="header"`: an incomplete include path for project-relative includes
+    pub path: Option<String>,
+
+    /// Copy file to project folder; deprecated, use `attr="config"` instead
+    pub copy: Option<String>,
+
+    /// File-specific version
+    pub version: Option<String>,
+
+    /// Source path relative to PDSC; semicolon-separated list for libraries
+    pub src: Option<String>,
+
+    /// Publishing permission; default `true`
+    pub public: Option<bool>,
+
+    /// IDE project explorer location override
+    pub projectpath: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Deprecated arguments wrapper; use `exe.argument` instead
 pub struct GeneratorArguments {
     /// Individual argument strings (0..*)
@@ -222,7 +302,8 @@ pub struct GeneratorArguments {
 #[cfg(test)]
 mod tests {
     use crate::generators::{
-        Argument, Command, Eclipse, Exe, File, Files, Generators, Gpdsc, ProjectFiles, Select, Web,
+        Argument, Command, Eclipse, EclipseArgument, Exe, File, Files, Generators, Gpdsc,
+        ProjectFile, ProjectFiles, Select, Web, WebArgument,
     };
 
     #[test]
@@ -282,7 +363,8 @@ mod tests {
         );
         assert_eq!(
             generator.exe,
-            Some(Exe {
+            vec![Exe {
+                host: None,
                 commands: vec![
                     Command {
                         host: Some("win".to_string()),
@@ -299,16 +381,25 @@ mod tests {
                     switch: Some("--project".to_string()),
                     value: "$P".to_string()
                 },],
-            })
+            }]
         );
         assert_eq!(
             generator.project_files,
             Some(ProjectFiles {
-                files: vec![File {
-                    name: "main.c".to_string(),
-                    category: "sourceC".to_string(),
+                files: vec![ProjectFile {
                     condition: None,
+                    category: "sourceC".to_string(),
+                    language: None,
+                    scope: None,
+                    attr: None,
+                    select: None,
+                    name: "main.c".to_string(),
+                    path: None,
+                    copy: None,
                     version: None,
+                    src: None,
+                    public: None,
+                    projectpath: None,
                 }],
             })
         );
@@ -333,8 +424,8 @@ mod tests {
 <generators>
     <generator id="MyEclipseGen">
         <eclipse plugin="com.example.generator" class="com.example.Generator" method="generate">
-            <argument switch="--device">$D</argument>
-            <argument mode="dry-run">--dry-run</argument>
+            <argument>$D</argument>
+            <argument>--dry-run</argument>
         </eclipse>
     </generator>
 </generators>"#;
@@ -350,22 +441,16 @@ mod tests {
                 class: "com.example.Generator".to_string(),
                 method: "generate".to_string(),
                 arguments: vec![
-                    Argument {
-                        mode: None,
-                        host: None,
-                        switch: Some("--device".to_string()),
+                    EclipseArgument {
                         value: "$D".to_string()
                     },
-                    Argument {
-                        mode: Some("dry-run".to_string()),
-                        host: None,
-                        switch: None,
+                    EclipseArgument {
                         value: "--dry-run".to_string()
                     },
                 ],
             })
         );
-        assert_eq!(generator.exe, None);
+        assert!(generator.exe.is_empty());
         assert_eq!(generator.web, None);
     }
 
@@ -388,15 +473,13 @@ mod tests {
             generator.web,
             Some(Web {
                 url: "https://generator.example.com/api".to_string(),
-                arguments: vec![Argument {
-                    mode: None,
-                    host: None,
-                    switch: Some("--board".to_string()),
+                arguments: vec![WebArgument {
+                    switch: "--board".to_string(),
                     value: "$B".to_string()
                 },],
             })
         );
-        assert_eq!(generator.exe, None);
+        assert!(generator.exe.is_empty());
         assert_eq!(generator.eclipse, None);
     }
 
@@ -430,6 +513,6 @@ mod tests {
             args.argument,
             vec!["--project".to_string(), "$P".to_string(),]
         );
-        assert_eq!(generator.exe, None);
+        assert!(generator.exe.is_empty());
     }
 }
