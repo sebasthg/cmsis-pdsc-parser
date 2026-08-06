@@ -23,6 +23,15 @@ where
         )
 }
 
+/// Deserializes an `Option<u32>` from a decimal or `0x`-prefixed hex string.
+/// Only called when the field is present; absent fields use `default` (None).
+fn de_opt_uint<'de, D>(d: D) -> Result<Option<u32>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    de_uint(d).map(Some)
+}
+
 /// Deserializes an `Option<bool>` from an xs:boolean string ("true", "false", "1", "0").
 /// Only called when the field is present; absent fields use `default` (None).
 fn de_opt_bool<'de, D>(d: D) -> Result<Option<bool>, D::Error>
@@ -471,11 +480,13 @@ pub struct DebugPort {
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct DebugPortJtag {
     /// TAP index on the JTAG chain
-    #[serde(rename = "tapindex")]
+    #[serde(rename = "tapindex", default, deserialize_with = "de_opt_uint")]
     pub tapindex: Option<u32>,
     /// JTAG IDCODE value
+    #[serde(default, deserialize_with = "de_opt_uint")]
     pub idcode: Option<u32>,
     /// Target selection value (SWD-DP multidrop)
+    #[serde(default, deserialize_with = "de_opt_uint")]
     pub targetsel: Option<u32>,
     /// Instruction register length in bits
     pub irlen: Option<u32>,
@@ -485,8 +496,10 @@ pub struct DebugPortJtag {
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct DebugPortSwd {
     /// SWD-DP IDCODE value
+    #[serde(default, deserialize_with = "de_opt_uint")]
     pub idcode: Option<u32>,
     /// Target selection value (SWD-DP multidrop)
+    #[serde(default, deserialize_with = "de_opt_uint")]
     pub targetsel: Option<u32>,
 }
 
@@ -733,6 +746,7 @@ pub struct SerialWire {
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct TracePort {
     /// Width of the parallel trace port in bits
+    #[serde(default, deserialize_with = "de_opt_uint")]
     pub width: Option<u32>,
 }
 
