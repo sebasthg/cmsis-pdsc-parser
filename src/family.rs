@@ -416,13 +416,11 @@ pub struct DebugConfig {
 pub struct DebugPort {
     /// Debug port index
     #[serde(rename = "__dp")]
-    pub dp: u32,
+    pub dp: Option<u32>,
     /// JTAG port configuration
     pub jtag: Option<DebugPortJtag>,
     /// SWD port configuration
     pub swd: Option<DebugPortSwd>,
-    /// cJTAG port configuration
-    pub cjtag: Option<DebugPortCjtag>,
 }
 
 /// JTAG debug port parameters
@@ -431,20 +429,21 @@ pub struct DebugPortJtag {
     /// TAP index on the JTAG chain
     #[serde(rename = "tapindex")]
     pub tapindex: Option<u32>,
+    /// JTAG IDCODE value
+    pub idcode: Option<u32>,
+    /// Target selection value (SWD-DP multidrop)
+    pub targetsel: Option<u32>,
+    /// Instruction register length in bits
+    pub irlen: Option<u32>,
 }
 
 /// SWD debug port parameters
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct DebugPortSwd {
-    /// Maximum SWD clock in Hz (informational)
-    pub clockmax: Option<u64>,
-}
-
-/// cJTAG debug port parameters
-#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
-pub struct DebugPortCjtag {
-    /// Maximum cJTAG clock in Hz (informational)
-    pub clockmax: Option<u64>,
+    /// SWD-DP IDCODE value
+    pub idcode: Option<u32>,
+    /// Target selection value (SWD-DP multidrop)
+    pub targetsel: Option<u32>,
 }
 
 /// Represents a [PDSC accessportV1](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_accessportV1) element
@@ -458,6 +457,12 @@ pub struct AccessPortV1 {
     pub dp: Option<u32>,
     /// APv1 index on the debug port
     pub index: u32,
+    /// HPROT bus attribute bits
+    #[serde(rename = "HPROT")]
+    pub hprot: Option<u32>,
+    /// Secure privileged access enable
+    #[serde(rename = "SPROT")]
+    pub sprot: Option<u32>,
 }
 
 /// Represents a [PDSC accessportV2](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_accessportV2) element
@@ -1610,11 +1615,10 @@ mod tests {
         let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
         assert_eq!(family.debugport.len(), 1);
         let dp = &family.debugport[0];
-        assert_eq!(dp.dp, 0);
+        assert_eq!(dp.dp, Some(0));
         assert!(dp.swd.is_some());
         assert!(dp.jtag.is_some());
         assert_eq!(dp.jtag.as_ref().unwrap().tapindex, Some(0));
-        assert!(dp.cjtag.is_none());
     }
 
     #[test]
