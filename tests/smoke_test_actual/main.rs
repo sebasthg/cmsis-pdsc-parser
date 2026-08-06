@@ -1,6 +1,6 @@
 use std::io::Read;
 
-use log::{debug, info, trace, error};
+use log::{debug, error, info, trace};
 use zip;
 
 use cmsis_pdsc_parser::Package;
@@ -19,14 +19,11 @@ fn main() {
 
     // Assert that we have the expected number of files
     info!("Openened {PDSC_PATH} and found {} files", archive.len());
-    assert_eq!(
-        archive.len(),
-        42,
-        "Wrong number of files in PDSC archive"
-    );
+    assert_eq!(archive.len(), 42, "Wrong number of files in PDSC archive");
 
     // Parse each PDSC file entry
     let mut success_count: usize = 0;
+    let mut real_pdsc_count: usize = 0;
     for i in 0..archive.len() {
         let mut file = archive.by_index(i).unwrap();
         debug!("Testing {}", file.name());
@@ -38,6 +35,7 @@ fn main() {
             debug!("Found the license file, ignoring...");
             continue;
         }
+        real_pdsc_count += 1;
 
         // Read the contents
         let mut pdsc_content: String = String::new();
@@ -49,14 +47,21 @@ fn main() {
             Ok(pdsc) => pdsc,
             Err(e) => {
                 error!(
-                "Failed to parse {} (file #{i}, {success_count} succeeded so far): {e}",
-                file.name()
+                    "Failed to parse {} (file #{i}, {success_count} succeeded so far): {e}",
+                    file.name()
                 );
                 continue;
-            },
+            }
         };
         trace!("Got: {pdsc:#?}");
         success_count += 1;
     }
     info!("Successfully parsed {success_count} files");
+
+    // Ensure that every real .pdsc file in the archive actually parsed successfully; without
+    // this assertion the test always exits 0 regardless of how many real files fail to parse.
+    assert_eq!(
+        success_count, real_pdsc_count,
+        "Not all real .pdsc files parsed successfully: {success_count}/{real_pdsc_count} succeeded"
+    );
 }
