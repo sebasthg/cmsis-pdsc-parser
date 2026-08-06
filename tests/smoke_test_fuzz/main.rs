@@ -21,7 +21,7 @@ fn main() {
     info!("Openened {PDSC_PATH} and found {} files", archive.len());
     assert_eq!(
         archive.len(),
-        10_006,
+        10_007,
         "Wrong number of files in PDSC archive"
     );
 
