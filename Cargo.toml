@@ -14,7 +14,11 @@ name = "PIC32CM_PL"
 harness = false
 
 [[test]]
-name = "smoke_test"
+name = "smoke_test_fuzz"
+harness = false
+
+[[test]]
+name = "smoke_test_actual"
 harness = false
 
 [dependencies]

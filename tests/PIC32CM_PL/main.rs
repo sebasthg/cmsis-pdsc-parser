@@ -11,7 +11,7 @@ use cmsis_pdsc_parser::{
 
 const PDSC_PATH: &str = concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/tests/PIC32CM_PL/Microchip.PIC32CM-PL_DFP.pdsc"
+    "/tests/PIC32CM_PL/pdsc/Microchip.PIC32CM-PL_DFP.pdsc"
 );
 
 const EXPECTED_DEBUGVARS: [(&str, u64); 26] = [
