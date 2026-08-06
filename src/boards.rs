@@ -92,7 +92,8 @@ pub struct Board {
     pub algorithms: Vec<Algorithm>,
 
     /// IDE-specific tool environments for this board (0..*)
-    pub environments: Option<BoardEnvironments>,
+    #[serde(rename = "environment", default)]
+    pub environments: Vec<BoardEnvironment>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
@@ -126,6 +127,14 @@ pub struct MountedDevice {
     /// Device name (use `"NO_MCU"` if there is no MCU)
     #[serde(rename = "Dname")]
     pub device_name: String,
+
+    /// Device family name (deprecated)
+    #[serde(rename = "Dfamily")]
+    pub device_family: Option<String>,
+
+    /// Device sub-family name (deprecated)
+    #[serde(rename = "DsubFamily")]
+    pub device_sub_family: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
@@ -137,7 +146,7 @@ pub struct CompatibleDevice {
 
     /// Device vendor (use `"NO_VENDOR:0"` for incompatible configurations); valid values: [DeviceVendorEnum](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html)
     #[serde(rename = "Dvendor")]
-    pub device_vendor: String,
+    pub device_vendor: Option<String>,
 
     /// Device name or wildcard pattern
     #[serde(rename = "Dname")]
@@ -228,21 +237,25 @@ pub struct DebugProbe {
     pub device_index: Option<String>,
 
     /// Probe type (e.g. `CMSIS-DAP`, `DAP-Link`, `ST-Link`, `J-Link`)
-    pub name: String,
+    pub name: Option<String>,
 
     /// Probe firmware version
-    pub version: String,
+    pub version: Option<String>,
 
     /// Connection type: `jtag` or `swd`
     #[serde(rename = "debugLink")]
-    pub debug_link: String,
+    pub debug_link: Option<String>,
 
     /// Default debug clock speed in Hz
-    #[serde(rename = "debugClock", deserialize_with = "deserialize_hex_u64")]
-    pub debug_clock: u64,
+    #[serde(
+        rename = "debugClock",
+        default,
+        deserialize_with = "deserialize_opt_hex_u64"
+    )]
+    pub debug_clock: Option<u64>,
 
     /// Physical connector type (e.g. `Mini-USB`, `Micro-USB`, `USB-C`)
-    pub connector: String,
+    pub connector: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
@@ -251,6 +264,9 @@ pub struct Memory {
     /// Processor identifier for multi-processor boards
     #[serde(rename = "Pname")]
     pub processor_name: Option<String>,
+
+    /// Deprecated memory region identifier
+    pub id: Option<String>,
 
     /// Unique memory region name
     pub name: Option<String>,
@@ -275,6 +291,9 @@ pub struct Memory {
     /// Whether the region should remain uninitialized (default: `false`)
     pub uninit: Option<bool>,
 
+    /// Whether the region is initialized (deprecated, use `uninit` instead)
+    pub init: Option<bool>,
+
     /// Name of another memory region this region aliases
     pub alias: Option<String>,
 }
@@ -286,16 +305,26 @@ pub struct Algorithm {
     #[serde(rename = "Pname")]
     pub processor_name: Option<String>,
 
+    /// Device index for multi-device boards
+    #[serde(rename = "deviceIndex")]
+    pub device_index: Option<String>,
+
     /// Path to the flash programming algorithm file
     pub name: String,
 
     /// Base address of the flash region covered by this algorithm (hex or decimal)
-    #[serde(deserialize_with = "deserialize_hex_u64")]
-    pub start: u64,
+    #[serde(default, deserialize_with = "deserialize_opt_hex_u64")]
+    pub start: Option<u64>,
 
     /// Size of the flash region covered by this algorithm in bytes (hex or decimal)
-    #[serde(deserialize_with = "deserialize_hex_u64")]
-    pub size: u64,
+    #[serde(default, deserialize_with = "deserialize_opt_hex_u64")]
+    pub size: Option<u64>,
+
+    /// Additional parameter passed to the algorithm
+    pub parameter: Option<String>,
+
+    /// Endianness of the target (default: `Little-endian`)
+    pub endian: Option<String>,
 
     /// RAM execution base address for the algorithm (hex or decimal)
     #[serde(
@@ -329,14 +358,6 @@ pub struct BoardEnvironment {
     /// Processor name for multi-core boards; limits this environment entry to one core
     #[serde(rename = "Pname")]
     pub processor_name: Option<String>,
-}
-
-#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
-/// Groups board environment entries for a [PDSC board](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_boards_pg.html#element_board)
-pub struct BoardEnvironments {
-    /// Individual environment entries (0..*)
-    #[serde(rename = "environment", default)]
-    pub environments: Vec<BoardEnvironment>,
 }
 
 #[cfg(test)]
@@ -388,13 +409,15 @@ mod tests {
                 device_index: None,
                 device_vendor: "STMicroelectronics:13".to_string(),
                 device_name: "STM32F401RETx".to_string(),
+                device_family: None,
+                device_sub_family: None,
             }]
         );
         assert_eq!(
             board.compatible_devices,
             vec![CompatibleDevice {
                 device_index: None,
-                device_vendor: "STMicroelectronics:13".to_string(),
+                device_vendor: Some("STMicroelectronics:13".to_string()),
                 device_name: Some("STM32F401*".to_string()),
                 device_family: None,
                 device_sub_family: None,
@@ -423,6 +446,7 @@ mod tests {
             board.memories,
             vec![Memory {
                 processor_name: None,
+                id: None,
                 name: Some("FLASH".to_string()),
                 access: Some("rx".to_string()),
                 start: 0x08000000,
@@ -430,6 +454,7 @@ mod tests {
                 default: Some(true),
                 startup: Some(true),
                 uninit: None,
+                init: None,
                 alias: None,
             }]
         );
@@ -437,9 +462,12 @@ mod tests {
             board.algorithms,
             vec![Algorithm {
                 processor_name: None,
+                device_index: None,
                 name: "Flash/STM32F4xx.FLM".to_string(),
-                start: 0x08000000,
-                size: 0x80000,
+                start: Some(0x08000000),
+                size: Some(0x80000),
+                parameter: None,
+                endian: None,
                 ram_start: None,
                 ram_size: None,
                 default: Some(true),
@@ -485,6 +513,8 @@ mod tests {
                 device_index: None,
                 device_vendor: "ARM:82".to_string(),
                 device_name: "ARMCM0".to_string(),
+                device_family: None,
+                device_sub_family: None,
             }]
         );
         assert_eq!(board.compatible_devices, vec![]);
@@ -529,11 +559,11 @@ mod tests {
             board.debug_probe,
             Some(DebugProbe {
                 device_index: None,
-                name: "CMSIS-DAP".to_string(),
-                version: "2.0".to_string(),
-                debug_link: "swd".to_string(),
-                debug_clock: 10_000_000,
-                connector: "USB-C".to_string(),
+                name: Some("CMSIS-DAP".to_string()),
+                version: Some("2.0".to_string()),
+                debug_link: Some("swd".to_string()),
+                debug_clock: Some(10_000_000),
+                connector: Some("USB-C".to_string()),
             })
         );
         assert_eq!(board.compatible_devices, vec![]);
@@ -548,10 +578,8 @@ mod tests {
     <board vendor="Example" name="EnvBoard">
         <description>Board with IDE environments</description>
         <mountedDevice Dvendor="ARM:82" Dname="ARMCM4"/>
-        <environments>
-            <environment name="uvision"/>
-            <environment name="iar" Pname="Core0"/>
-        </environments>
+        <environment name="uvision"/>
+        <environment name="iar" Pname="Core0"/>
     </board>
 </boards>"#;
 
@@ -560,20 +588,16 @@ mod tests {
 
         assert_eq!(board.vendor, "Example");
         assert_eq!(board.name, "EnvBoard");
-        let envs = board
-            .environments
-            .as_ref()
-            .expect("environments should be present");
-        assert_eq!(envs.environments.len(), 2);
+        assert_eq!(board.environments.len(), 2);
         assert_eq!(
-            envs.environments[0],
+            board.environments[0],
             BoardEnvironment {
                 name: "uvision".to_string(),
                 processor_name: None,
             }
         );
         assert_eq!(
-            envs.environments[1],
+            board.environments[1],
             BoardEnvironment {
                 name: "iar".to_string(),
                 processor_name: Some("Core0".to_string()),
