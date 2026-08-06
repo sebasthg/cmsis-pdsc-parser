@@ -34,6 +34,9 @@ pub struct PartTaxonomyDescription {
     /// Publishing permission; default `true`
     pub public: Option<bool>,
 
+    /// Condition ID that applies to this class/group
+    pub condition: Option<String>,
+
     /// Human-readable description of the hardware part class or group; empty string if absent
     #[serde(rename = "#content")]
     pub content: String,
@@ -412,7 +415,7 @@ mod tests {
         let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
 <part-taxonomy>
     <description Hclass="Microcontroller" Hgroup="ARM Cortex-M" doc="Docs/MCU/index.html"
-                 generator="MyGen" public="true">ARM Cortex-M microcontrollers</description>
+                 generator="MyGen" public="true" condition="MyCondition">ARM Cortex-M microcontrollers</description>
     <description Hclass="Memory"/>
 </part-taxonomy>"#;
 
@@ -427,6 +430,7 @@ mod tests {
                 doc: Some("Docs/MCU/index.html".to_string()),
                 generator: Some("MyGen".to_string()),
                 public: Some(true),
+                condition: Some("MyCondition".to_string()),
                 content: "ARM Cortex-M microcontrollers".to_string(),
             }
         );
@@ -438,6 +442,7 @@ mod tests {
                 doc: None,
                 generator: None,
                 public: None,
+                condition: None,
                 content: "".to_string(),
             }
         );

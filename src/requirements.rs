@@ -106,6 +106,10 @@ pub struct Target {
     #[serde(rename = "Brevision")]
     /// Specifies the board revision
     pub board_revision: Option<String>,
+
+    /// Optional descriptive text content of the `target` element; empty string if absent
+    #[serde(rename = "#content")]
+    pub content: String,
 }
 
 #[cfg(test)]
@@ -192,7 +196,8 @@ mod tests {
                         device_core: None,
                         board_name: None,
                         board_revision: None,
-                        board_vendor: None
+                        board_vendor: None,
+                        content: String::new()
                     },
                     Target {
                         device_vendor: Some("STMicroelectronics:13".to_string()),
@@ -200,7 +205,8 @@ mod tests {
                         device_core: None,
                         board_name: None,
                         board_revision: None,
-                        board_vendor: None
+                        board_vendor: None,
+                        content: String::new()
                     }
                 ]
             })
