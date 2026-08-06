@@ -176,30 +176,42 @@ impl<'a> Package<'a> {
             .iter_mut()
             .flat_map(|devices| devices.families.iter_mut())
         {
+            family.debugvars = family::merge_debugvars(&family.debugvars_raw)?;
             family.debugvars.parse_debugvars();
+            family.sequences = family::merge_sequences(&family.sequences_raw)?;
             family.sequences.parse_sequences()?;
             family.flashinfo = family::parse_flashinfo(&family.flashinfo_raw)?;
             for sf in &mut family.sub_families {
+                sf.debugvars = family::merge_debugvars(&sf.debugvars_raw)?;
                 sf.debugvars.parse_debugvars();
+                sf.sequences = family::merge_sequences(&sf.sequences_raw)?;
                 sf.sequences.parse_sequences()?;
                 sf.flashinfo = family::parse_flashinfo(&sf.flashinfo_raw)?;
                 for device in &mut sf.devices {
+                    device.debugvars = family::merge_debugvars(&device.debugvars_raw)?;
                     device.debugvars.parse_debugvars();
+                    device.sequences = family::merge_sequences(&device.sequences_raw)?;
                     device.sequences.parse_sequences()?;
                     device.flashinfo = family::parse_flashinfo(&device.flashinfo_raw)?;
                     for variant in &mut device.variants {
+                        variant.debugvars = family::merge_debugvars(&variant.debugvars_raw)?;
                         variant.debugvars.parse_debugvars();
+                        variant.sequences = family::merge_sequences(&variant.sequences_raw)?;
                         variant.sequences.parse_sequences()?;
                         variant.flashinfo = family::parse_flashinfo(&variant.flashinfo_raw)?;
                     }
                 }
             }
             for device in &mut family.devices {
+                device.debugvars = family::merge_debugvars(&device.debugvars_raw)?;
                 device.debugvars.parse_debugvars();
+                device.sequences = family::merge_sequences(&device.sequences_raw)?;
                 device.sequences.parse_sequences()?;
                 device.flashinfo = family::parse_flashinfo(&device.flashinfo_raw)?;
                 for variant in &mut device.variants {
+                    variant.debugvars = family::merge_debugvars(&variant.debugvars_raw)?;
                     variant.debugvars.parse_debugvars();
+                    variant.sequences = family::merge_sequences(&variant.sequences_raw)?;
                     variant.sequences.parse_sequences()?;
                     variant.flashinfo = family::parse_flashinfo(&variant.flashinfo_raw)?;
                 }

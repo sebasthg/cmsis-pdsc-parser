@@ -166,12 +166,20 @@ pub struct Family<'a> {
     #[serde(rename = "device", default)]
     pub devices: Vec<Device<'a>>,
 
-    /// Global debug variables
-    #[serde(default)]
+    /// Raw `<debugvars>` nodes; see [`merge_debugvars`] for why these are deferred.
+    #[serde(rename = "debugvars", default, borrow, skip_serializing)]
+    pub debugvars_raw: Vec<RawNode<'a>>,
+
+    /// Global debug variables, merged from [`Self::debugvars_raw`] by [`merge_debugvars`]
+    #[serde(skip_deserializing)]
     pub debugvars: Debugvars,
 
-    /// Debug sequences
-    #[serde(borrow, default)]
+    /// Raw `<sequences>` nodes; see [`merge_sequences`] for why these are deferred.
+    #[serde(rename = "sequences", default, borrow, skip_serializing)]
+    pub sequences_raw: Vec<RawNode<'a>>,
+
+    /// Debug sequences, merged from [`Self::sequences_raw`] by [`merge_sequences`]
+    #[serde(skip_deserializing)]
     pub sequences: Sequences<'a>,
 }
 
@@ -183,6 +191,29 @@ pub enum TraceSetup {
     #[serde(rename = "legacy")]
     #[default]
     Legacy,
+}
+
+/// Deserializes an `Option<TraceSetup>` from a `TraceSetupEnum` string ("full", "legacy").
+///
+/// `traceSetup` is an XML *attribute* on `<sequences>` (see `PACK.xsd`), and `serde_roxmltree`'s
+/// structural enum support only matches variants against sibling/attribute *tag names*, not
+/// against the text *value* of a single attribute. A plain `#[derive(Deserialize)]` enum field
+/// therefore fails with `Error::MissingNode` as soon as the attribute is actually present, so the
+/// value is parsed manually here instead, mirroring [`de_opt_bool`].
+///
+/// Only called when the attribute is present; absent attributes use `default` (`None`).
+fn de_opt_trace_setup<'de, D>(d: D) -> Result<Option<TraceSetup>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s = String::deserialize(d)?;
+    match s.as_str() {
+        "full" => Ok(Some(TraceSetup::Full)),
+        "legacy" => Ok(Some(TraceSetup::Legacy)),
+        other => Err(serde::de::Error::custom(format!(
+            "expected TraceSetupEnum, got: {other}"
+        ))),
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
@@ -332,6 +363,42 @@ impl Debugvars {
 
         self.parsed_debugvars = Some(vars);
     }
+}
+
+/// Merges repeated `<debugvars>` sibling elements into a single [`Debugvars`].
+///
+/// `PACK.xsd`'s `DevicePropertiesGroup` models `<debugvars>` (along with several other elements)
+/// as a member of an `xs:choice` with `maxOccurs="unbounded"`, so more than one `<debugvars>` may
+/// legally appear as a sibling at the family/subFamily/device/variant level. Since [`Debugvars`]
+/// is not a `Vec`-based field, the raw nodes are captured separately (see e.g. [`Family::debugvars_raw`])
+/// and merged here: variable-declaration content is concatenated in document order (so
+/// [`Debugvars::parse_debugvars`] can be run once on the result), and the first non-empty
+/// `configfile`/`version` value wins.
+///
+/// # Errors
+///
+/// Returns [`crate::Error::SerdeRoxmltree`] if any raw `<debugvars>` node fails to parse.
+pub fn merge_debugvars(raw_nodes: &[RawNode<'_>]) -> Result<Debugvars, crate::Error> {
+    let mut merged = Debugvars::default();
+    let mut contents: Vec<String> = Vec::new();
+
+    for node in raw_nodes {
+        let parsed: Debugvars = serde_roxmltree::from_node(node.0)?;
+
+        if merged.configfile.is_none() {
+            merged.configfile = parsed.configfile;
+        }
+        if merged.version.is_none() {
+            merged.version = parsed.version;
+        }
+        if !parsed.content.is_empty() {
+            contents.push(parsed.content);
+        }
+    }
+
+    merged.content = contents.join("\n");
+
+    Ok(merged)
 }
 
 /// Represents a [PDSC processor](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_processor) element
@@ -863,11 +930,19 @@ pub struct Variant<'a> {
     /// Tool environment entries (0..*)
     #[serde(rename = "environment", default)]
     pub environment: Vec<FamilyEnvironment>,
-    /// Variant-level debug variables (rare; most packs define these at family level)
-    #[serde(default)]
+    /// Raw `<debugvars>` nodes; see [`merge_debugvars`] for why these are deferred.
+    #[serde(rename = "debugvars", default, borrow, skip_serializing)]
+    pub debugvars_raw: Vec<RawNode<'a>>,
+    /// Variant-level debug variables (rare; most packs define these at family level), merged
+    /// from [`Self::debugvars_raw`] by [`merge_debugvars`]
+    #[serde(skip_deserializing)]
     pub debugvars: Debugvars,
-    /// Variant-level debug sequences (rare; most packs define these at family level)
-    #[serde(borrow, default)]
+    /// Raw `<sequences>` nodes; see [`merge_sequences`] for why these are deferred.
+    #[serde(rename = "sequences", default, borrow, skip_serializing)]
+    pub sequences_raw: Vec<RawNode<'a>>,
+    /// Variant-level debug sequences (rare; most packs define these at family level), merged
+    /// from [`Self::sequences_raw`] by [`merge_sequences`]
+    #[serde(skip_deserializing)]
     pub sequences: Sequences<'a>,
 }
 
@@ -927,11 +1002,19 @@ pub struct Device<'a> {
     /// Tool environment entries (0..*)
     #[serde(rename = "environment", default)]
     pub environment: Vec<FamilyEnvironment>,
-    /// Device-level debug variables (rare; most packs define these at family level)
-    #[serde(default)]
+    /// Raw `<debugvars>` nodes; see [`merge_debugvars`] for why these are deferred.
+    #[serde(rename = "debugvars", default, borrow, skip_serializing)]
+    pub debugvars_raw: Vec<RawNode<'a>>,
+    /// Device-level debug variables (rare; most packs define these at family level), merged
+    /// from [`Self::debugvars_raw`] by [`merge_debugvars`]
+    #[serde(skip_deserializing)]
     pub debugvars: Debugvars,
-    /// Device-level debug sequences (rare; most packs define these at family level)
-    #[serde(borrow, default)]
+    /// Raw `<sequences>` nodes; see [`merge_sequences`] for why these are deferred.
+    #[serde(rename = "sequences", default, borrow, skip_serializing)]
+    pub sequences_raw: Vec<RawNode<'a>>,
+    /// Device-level debug sequences (rare; most packs define these at family level), merged
+    /// from [`Self::sequences_raw`] by [`merge_sequences`]
+    #[serde(skip_deserializing)]
     pub sequences: Sequences<'a>,
     /// Device variants (0..*)
     #[serde(rename = "variant", default)]
@@ -994,11 +1077,17 @@ pub struct SubFamily<'a> {
     /// Tool environment entries (0..*)
     #[serde(rename = "environment", default)]
     pub environment: Vec<FamilyEnvironment>,
-    /// Sub-family-level debug variables
-    #[serde(default)]
+    /// Raw `<debugvars>` nodes; see [`merge_debugvars`] for why these are deferred.
+    #[serde(rename = "debugvars", default, borrow, skip_serializing)]
+    pub debugvars_raw: Vec<RawNode<'a>>,
+    /// Sub-family-level debug variables, merged from [`Self::debugvars_raw`] by [`merge_debugvars`]
+    #[serde(skip_deserializing)]
     pub debugvars: Debugvars,
-    /// Sub-family-level debug sequences
-    #[serde(borrow, default)]
+    /// Raw `<sequences>` nodes; see [`merge_sequences`] for why these are deferred.
+    #[serde(rename = "sequences", default, borrow, skip_serializing)]
+    pub sequences_raw: Vec<RawNode<'a>>,
+    /// Sub-family-level debug sequences, merged from [`Self::sequences_raw`] by [`merge_sequences`]
+    #[serde(skip_deserializing)]
     pub sequences: Sequences<'a>,
     /// Devices within this sub-family (0..*)
     #[serde(rename = "device", default)]
@@ -1009,7 +1098,11 @@ pub struct SubFamily<'a> {
 /// Represents [PDSC sequences](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_sequences)
 pub struct Sequences<'a> {
     /// Trace setup configuration
-    #[serde(rename = "traceSetup")]
+    #[serde(
+        rename = "traceSetup",
+        default,
+        deserialize_with = "de_opt_trace_setup"
+    )]
     pub trace_setup: Option<TraceSetup>,
 
     /// Raw XML nodes representing debug sequences
@@ -1056,6 +1149,33 @@ impl Sequences<'_> {
 
         Ok(())
     }
+}
+
+/// Merges repeated `<sequences>` sibling elements into a single [`Sequences`].
+///
+/// `PACK.xsd`'s `DevicePropertiesGroup` models `<sequences>` (along with several other elements)
+/// as a member of an `xs:choice` with `maxOccurs="unbounded"`, so more than one `<sequences>` may
+/// legally appear as a sibling at the family/subFamily/device/variant level. Since [`Sequences`]
+/// is not a `Vec`-based field, the raw nodes are captured separately (see e.g. [`Family::sequences_raw`])
+/// and merged here: the `<sequence>` children of every sibling are concatenated in document order,
+/// and the first non-`None` `traceSetup` value wins.
+///
+/// # Errors
+///
+/// Returns [`crate::Error::SerdeRoxmltree`] if any raw `<sequences>` node fails to parse.
+pub fn merge_sequences<'a>(raw_nodes: &[RawNode<'a>]) -> Result<Sequences<'a>, crate::Error> {
+    let mut merged = Sequences::default();
+
+    for node in raw_nodes {
+        let parsed: Sequences<'a> = serde_roxmltree::from_node(node.0)?;
+
+        if merged.trace_setup.is_none() {
+            merged.trace_setup = parsed.trace_setup;
+        }
+        merged.raw_nodes.extend(parsed.raw_nodes);
+    }
+
+    Ok(merged)
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
@@ -1307,7 +1427,7 @@ mod tests {
         },
         family::{
             FamilyParseError, FlashBlock, FlashGap, FlashInfoElement, Sequence, SequenceBlock,
-            SequenceControl, SequenceElement, parse_flashinfo,
+            SequenceControl, SequenceElement, TraceSetup, parse_flashinfo,
         },
     };
 
@@ -2127,8 +2247,10 @@ mod tests {
     </variant>
 </device>"#;
         let document = Document::parse(xml_str).unwrap();
-        let device: crate::family::Device = serde_roxmltree::from_doc(&document).unwrap();
+        let mut device: crate::family::Device = serde_roxmltree::from_doc(&document).unwrap();
         assert_eq!(device.variants.len(), 1);
+        device.variants[0].debugvars =
+            crate::family::merge_debugvars(&device.variants[0].debugvars_raw).unwrap();
         assert_eq!(
             device.variants[0].debugvars.configfile,
             Some("debug.dbgconf".to_string())
@@ -2137,5 +2259,65 @@ mod tests {
             device.variants[0].debugvars.version,
             Some("1.0.0".to_string())
         );
+    }
+
+    #[test]
+    fn parse_family_debugvars_multiple_siblings() {
+        // `PACK.xsd`'s `DevicePropertiesGroup` models `<debugvars>` as part of an unbounded
+        // `xs:choice`, so more than one `<debugvars>` sibling is legal and must be merged.
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<family Dfamily="STM32F1" Dvendor="STMicroelectronics:13">
+    <debugvars configfile="debug.dbgconf" version="1.0.0">__var myVar = 0x1;</debugvars>
+    <debugvars>__var otherVar = 0x2;</debugvars>
+    <sequences/>
+</family>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let mut family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(family.debugvars_raw.len(), 2);
+
+        family.debugvars = crate::family::merge_debugvars(&family.debugvars_raw).unwrap();
+        assert_eq!(
+            family.debugvars.configfile,
+            Some("debug.dbgconf".to_string())
+        );
+        assert_eq!(family.debugvars.version, Some("1.0.0".to_string()));
+
+        family.debugvars.parse_debugvars();
+        let parsed = family.debugvars.parsed_debugvars.unwrap();
+        assert_eq!(parsed.get("myVar"), Some(&1));
+        assert_eq!(parsed.get("otherVar"), Some(&2));
+    }
+
+    #[test]
+    fn parse_family_sequences_multiple_siblings() {
+        // `PACK.xsd`'s `DevicePropertiesGroup` models `<sequences>` as part of an unbounded
+        // `xs:choice`, so more than one `<sequences>` sibling is legal and must be merged,
+        // preserving the document order of the `<sequence>` children across siblings.
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<family Dfamily="STM32F1" Dvendor="STMicroelectronics:13">
+    <debugvars></debugvars>
+    <sequences traceSetup="full">
+        <sequence name="SeqA">
+            <block>Sequence("A");</block>
+        </sequence>
+    </sequences>
+    <sequences>
+        <sequence name="SeqB">
+            <block>Sequence("B");</block>
+        </sequence>
+    </sequences>
+</family>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let mut family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(family.sequences_raw.len(), 2);
+
+        family.sequences = crate::family::merge_sequences(&family.sequences_raw).unwrap();
+        assert_eq!(family.sequences.trace_setup, Some(TraceSetup::Full));
+        assert_eq!(family.sequences.raw_nodes.len(), 2);
+
+        family.sequences.parse_sequences().unwrap();
+        assert_eq!(family.sequences.sequences.len(), 2);
+        assert_eq!(family.sequences.sequences[0].name, "SeqA");
+        assert_eq!(family.sequences.sequences[1].name, "SeqB");
     }
 }
