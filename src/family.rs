@@ -120,8 +120,12 @@ pub struct Family<'a> {
     #[serde(rename = "algorithm", default)]
     pub algorithm: Vec<Algorithm>,
 
-    /// Flash information (0..*)
-    #[serde(rename = "flashinfo", default)]
+    /// Raw `<flashinfo>` nodes; see [`FlashInfo`]'s `TryFrom<Node>` impl for why these are deferred.
+    #[serde(rename = "flashinfo", default, borrow, skip_serializing)]
+    pub flashinfo_raw: Vec<RawNode<'a>>,
+
+    /// Flash information (0..*), populated from [`Self::flashinfo_raw`] by [`parse_flashinfo`]
+    #[serde(skip_deserializing)]
     pub flashinfo: Vec<FlashInfo>,
 
     /// Memory regions (0..*)
@@ -583,12 +587,43 @@ pub struct FlashInfo {
     /// Processor instance name this info applies to
     #[serde(rename = "Pname")]
     pub pname: Option<String>,
-    /// Contiguous flash blocks (0..*)
-    #[serde(rename = "block", default)]
-    pub blocks: Vec<FlashBlock>,
-    /// Gaps between flash regions (0..*)
-    #[serde(rename = "gap", default)]
-    pub gaps: Vec<FlashGap>,
+    /// Contiguous flash blocks and gaps, in document order (0..*)
+    ///
+    /// These are populated by [`FlashInfo`]'s `TryFrom<Node>` impl rather than by [serde_roxmltree]
+    /// directly, since `<block>` and `<gap>` are interleaved children and [serde_roxmltree] can only
+    /// collect repeated children of a single tag name per field.
+    #[serde(skip_deserializing)]
+    pub elements: Vec<FlashInfoElement>,
+}
+
+impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for FlashInfo {
+    type Error = crate::Error;
+
+    fn try_from(value: Node<'a, 'input>) -> Result<Self, Self::Error> {
+        let mut info: Self = serde_roxmltree::from_node(value)?;
+
+        for child in value.children().filter(roxmltree::Node::is_element) {
+            info.elements.push(child.try_into()?);
+        }
+
+        Ok(info)
+    }
+}
+
+/// Parses raw `<flashinfo>` nodes into [`FlashInfo`]s, preserving `<block>`/`<gap>` document order
+///
+/// # Errors
+///
+/// Returns [`crate::Error::Family`] if any raw flashinfo node fails to parse.
+pub fn parse_flashinfo(raw_nodes: &[RawNode<'_>]) -> Result<Vec<FlashInfo>, crate::Error> {
+    raw_nodes
+        .iter()
+        .map(|node| {
+            node.0.try_into().inspect_err(|e| {
+                error!("Failed to parse flashinfo node `{node:#?}` with err `{e:#?}`");
+            })
+        })
+        .collect()
 }
 
 /// A contiguous block within a flash device
@@ -608,6 +643,37 @@ pub struct FlashBlock {
 pub struct FlashGap {
     /// Gap sector size in bytes (hex string)
     pub size: String,
+}
+
+/// Represents the valid `<flashinfo>` child elements, with document order preserved
+#[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize)]
+pub enum FlashInfoElement {
+    /// A contiguous flash block, see [FlashBlock]
+    Block(FlashBlock),
+    /// A gap between flash regions, see [FlashGap]
+    Gap(FlashGap),
+}
+
+impl Default for FlashInfoElement {
+    fn default() -> Self {
+        Self::Block(FlashBlock::default())
+    }
+}
+
+impl<'a, 'input: 'a> TryFrom<Node<'a, 'input>> for FlashInfoElement {
+    type Error = crate::Error;
+
+    fn try_from(value: Node<'a, 'input>) -> Result<Self, Self::Error> {
+        if !value.is_element() {
+            // Text/comment nodes are not flashinfo elements; content-parse is unimplemented
+            return Err(FamilyParseError::UnimplementedContent.into());
+        }
+        match value.tag_name().name().to_lowercase().as_str() {
+            "block" => Ok(Self::Block(serde_roxmltree::from_node(value)?)),
+            "gap" => Ok(Self::Gap(serde_roxmltree::from_node(value)?)),
+            other => Err(FamilyParseError::UnknownElementType(other.to_string()).into()),
+        }
+    }
 }
 
 /// Represents a [PDSC memory](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_memory) element
@@ -759,8 +825,12 @@ pub struct Variant<'a> {
     /// Flash programming algorithms (0..*)
     #[serde(rename = "algorithm", default)]
     pub algorithm: Vec<Algorithm>,
-    /// Flash information (0..*)
-    #[serde(rename = "flashinfo", default)]
+    /// Raw `<flashinfo>` nodes; see [`FlashInfo`]'s `TryFrom<Node>` impl for why these are deferred.
+    #[serde(rename = "flashinfo", default, borrow, skip_serializing)]
+    pub flashinfo_raw: Vec<RawNode<'a>>,
+
+    /// Flash information (0..*), populated from [`Self::flashinfo_raw`] by [`parse_flashinfo`]
+    #[serde(skip_deserializing)]
     pub flashinfo: Vec<FlashInfo>,
     /// Memory regions (0..*)
     #[serde(rename = "memory", default)]
@@ -818,8 +888,12 @@ pub struct Device<'a> {
     /// Flash programming algorithms (0..*)
     #[serde(rename = "algorithm", default)]
     pub algorithm: Vec<Algorithm>,
-    /// Flash information (0..*)
-    #[serde(rename = "flashinfo", default)]
+    /// Raw `<flashinfo>` nodes; see [`FlashInfo`]'s `TryFrom<Node>` impl for why these are deferred.
+    #[serde(rename = "flashinfo", default, borrow, skip_serializing)]
+    pub flashinfo_raw: Vec<RawNode<'a>>,
+
+    /// Flash information (0..*), populated from [`Self::flashinfo_raw`] by [`parse_flashinfo`]
+    #[serde(skip_deserializing)]
     pub flashinfo: Vec<FlashInfo>,
     /// Memory regions (0..*)
     #[serde(rename = "memory", default)]
@@ -880,8 +954,12 @@ pub struct SubFamily<'a> {
     /// Flash programming algorithms (0..*)
     #[serde(rename = "algorithm", default)]
     pub algorithm: Vec<Algorithm>,
-    /// Flash information (0..*)
-    #[serde(rename = "flashinfo", default)]
+    /// Raw `<flashinfo>` nodes; see [`FlashInfo`]'s `TryFrom<Node>` impl for why these are deferred.
+    #[serde(rename = "flashinfo", default, borrow, skip_serializing)]
+    pub flashinfo_raw: Vec<RawNode<'a>>,
+
+    /// Flash information (0..*), populated from [`Self::flashinfo_raw`] by [`parse_flashinfo`]
+    #[serde(skip_deserializing)]
     pub flashinfo: Vec<FlashInfo>,
     /// Memory regions (0..*)
     #[serde(rename = "memory", default)]
@@ -1209,7 +1287,10 @@ mod tests {
             Assignment, DebugFunction, Expression,
             Statement::{self},
         },
-        family::{FamilyParseError, Sequence, SequenceBlock, SequenceControl, SequenceElement},
+        family::{
+            FamilyParseError, FlashBlock, FlashGap, FlashInfoElement, Sequence, SequenceBlock,
+            SequenceControl, SequenceElement, parse_flashinfo,
+        },
     };
 
     #[test]
@@ -1777,16 +1858,56 @@ mod tests {
 </family>"#;
         let document = Document::parse(xml_str).unwrap();
         let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
-        assert_eq!(family.flashinfo.len(), 1);
-        let fi = &family.flashinfo[0];
+        assert_eq!(family.flashinfo_raw.len(), 1);
+        let flashinfo = parse_flashinfo(&family.flashinfo_raw).unwrap();
+        assert_eq!(flashinfo.len(), 1);
+        let fi = &flashinfo[0];
         assert_eq!(fi.name, "Flash");
         assert_eq!(fi.start, "0x08000000");
         assert_eq!(fi.pagesize, "0x400");
         assert_eq!(fi.blankval, Some("0xFF".to_string()));
-        assert_eq!(fi.blocks.len(), 1);
-        assert_eq!(fi.blocks[0].count, 128);
-        assert_eq!(fi.blocks[0].size, "0x400");
-        assert_eq!(fi.blocks[0].arg, None);
+        assert_eq!(
+            fi.elements,
+            vec![FlashInfoElement::Block(FlashBlock {
+                count: 128,
+                size: "0x400".to_string(),
+                arg: None,
+            })]
+        );
+    }
+
+    #[test]
+    fn parse_family_flashinfo_interleaved_order() {
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<family Dfamily="STM32F1" Dvendor="STMicroelectronics:13">
+    <flashinfo name="Flash" start="0x08000000" pagesize="0x400" blankval="0xFF">
+        <gap size="0x10"/>
+        <block count="128" size="0x400"/>
+        <gap size="0x20"/>
+    </flashinfo>
+    <debugvars></debugvars>
+    <sequences/>
+</family>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
+        let flashinfo = parse_flashinfo(&family.flashinfo_raw).unwrap();
+        assert_eq!(flashinfo.len(), 1);
+        assert_eq!(
+            flashinfo[0].elements,
+            vec![
+                FlashInfoElement::Gap(FlashGap {
+                    size: "0x10".to_string(),
+                }),
+                FlashInfoElement::Block(FlashBlock {
+                    count: 128,
+                    size: "0x400".to_string(),
+                    arg: None,
+                }),
+                FlashInfoElement::Gap(FlashGap {
+                    size: "0x20".to_string(),
+                }),
+            ]
+        );
     }
 
     #[test]

@@ -4,6 +4,7 @@ use log::info;
 
 use cmsis_pdsc_parser::{
     Package,
+    family::{FlashBlock, FlashInfoElement},
     pdsc::{self, License, LicenseSet},
     requirements::{self, PackagesList},
 };
@@ -205,4 +206,51 @@ fn main() {
             .to_owned();
         assert_eq!(stored_value, value)
     }
+
+    // Validate flashinfo for the first device (PIC32CM1216PL10028)
+    let device = &family.devices[0];
+    assert_eq!(&device.device_name, "PIC32CM1216PL10028");
+    assert_eq!(device.flashinfo.len(), 3);
+
+    let flash = &device.flashinfo[0];
+    assert_eq!(flash.name, "Flash");
+    assert_eq!(flash.start, "0x0C000000");
+    assert_eq!(flash.pagesize, "0x200");
+    assert_eq!(flash.blankval, Some("0xFFFFFFFF".to_string()));
+    assert_eq!(flash.ptime, Some(1_000_000));
+    assert_eq!(flash.etime, Some(1_000_000));
+    assert_eq!(
+        flash.elements,
+        vec![FlashInfoElement::Block(FlashBlock {
+            count: 0x100,
+            size: "0x200".to_string(),
+            arg: None,
+        })]
+    );
+
+    let romcfg = &device.flashinfo[1];
+    assert_eq!(romcfg.name, "ROMCFG");
+    assert_eq!(romcfg.start, "0x0D000000");
+    assert_eq!(romcfg.pagesize, "0x100");
+    assert_eq!(
+        romcfg.elements,
+        vec![FlashInfoElement::Block(FlashBlock {
+            count: 0x1,
+            size: "0x100".to_string(),
+            arg: None,
+        })]
+    );
+
+    let bootcfg = &device.flashinfo[2];
+    assert_eq!(bootcfg.name, "BOOTCFG");
+    assert_eq!(bootcfg.start, "0x0D000400");
+    assert_eq!(bootcfg.pagesize, "0x100");
+    assert_eq!(
+        bootcfg.elements,
+        vec![FlashInfoElement::Block(FlashBlock {
+            count: 0x1,
+            size: "0x100".to_string(),
+            arg: None,
+        })]
+    );
 }

@@ -174,17 +174,31 @@ impl<'a> Package<'a> {
         for family in &mut package.devices.families {
             family.debugvars.parse_debugvars();
             family.sequences.parse_sequences()?;
+            family.flashinfo = family::parse_flashinfo(&family.flashinfo_raw)?;
             for sf in &mut family.sub_families {
                 sf.debugvars.parse_debugvars();
                 sf.sequences.parse_sequences()?;
+                sf.flashinfo = family::parse_flashinfo(&sf.flashinfo_raw)?;
                 for device in &mut sf.devices {
                     device.debugvars.parse_debugvars();
                     device.sequences.parse_sequences()?;
+                    device.flashinfo = family::parse_flashinfo(&device.flashinfo_raw)?;
+                    for variant in &mut device.variants {
+                        variant.debugvars.parse_debugvars();
+                        variant.sequences.parse_sequences()?;
+                        variant.flashinfo = family::parse_flashinfo(&variant.flashinfo_raw)?;
+                    }
                 }
             }
             for device in &mut family.devices {
                 device.debugvars.parse_debugvars();
                 device.sequences.parse_sequences()?;
+                device.flashinfo = family::parse_flashinfo(&device.flashinfo_raw)?;
+                for variant in &mut device.variants {
+                    variant.debugvars.parse_debugvars();
+                    variant.sequences.parse_sequences()?;
+                    variant.flashinfo = family::parse_flashinfo(&variant.flashinfo_raw)?;
+                }
             }
         }
 
