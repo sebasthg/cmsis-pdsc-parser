@@ -37,6 +37,10 @@ pub struct Clayer {
 
     /// References a condition ID; layer is available only if the condition is met
     pub condition: Option<String>,
+
+    /// Text content of the element
+    #[serde(rename = "#content")]
+    pub content: String,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
@@ -73,7 +77,7 @@ mod tests {
         let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
 <csolution>
     <clayer type="Board" path="layers/board" file="Board.clayer.yml"
-            copy-to="Board" condition="CM4"/>
+            copy-to="Board" condition="CM4">Board layer description</clayer>
     <clayer type="Shield" path="layers/shield" file="Shield.clayer.yml"/>
     <template name="Blinky" path="templates/Blinky" file="Blinky.csolution.yml"
               copy-to="MyBlinky" condition="GCC">
@@ -95,6 +99,7 @@ mod tests {
                 file: "Board.clayer.yml".to_string(),
                 copy_to: Some("Board".to_string()),
                 condition: Some("CM4".to_string()),
+                content: "Board layer description".to_string(),
             }
         );
         assert_eq!(
@@ -105,6 +110,7 @@ mod tests {
                 file: "Shield.clayer.yml".to_string(),
                 copy_to: None,
                 condition: None,
+                content: String::new(),
             }
         );
 

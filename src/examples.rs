@@ -60,17 +60,12 @@ pub struct ExampleBoard {
     /// Commercial board name
     pub name: String,
 
+    /// Board revision
+    pub revision: Option<String>,
+
     /// Device vendor (deprecated since v1.1; prefer board's mounted device)
     #[serde(rename = "Dvendor")]
     pub device_vendor: Option<String>,
-
-    /// Device family (deprecated since v1.1)
-    #[serde(rename = "Dfamily")]
-    pub device_family: Option<String>,
-
-    /// Device sub-family (deprecated since v1.1)
-    #[serde(rename = "DsubFamily")]
-    pub device_sub_family: Option<String>,
 
     /// Device name (deprecated since v1.1)
     #[serde(rename = "Dname")]
@@ -145,6 +140,21 @@ pub struct ExampleComponent {
     /// Component vendor
     #[serde(rename = "Cvendor")]
     pub vendor: Option<String>,
+
+    /// Component bundle name
+    #[serde(rename = "Cbundle")]
+    pub bundle: Option<String>,
+
+    /// Component variant name
+    #[serde(rename = "Cvariant")]
+    pub variant: Option<String>,
+
+    /// Component API version
+    #[serde(rename = "Capiversion")]
+    pub api_version: Option<String>,
+
+    /// Number of simultaneous instances allowed; default is 1
+    pub instances: Option<u32>,
 }
 
 #[cfg(test)]
@@ -160,7 +170,7 @@ mod tests {
     <example name="Blinky" folder="examples/Blinky" doc="examples/Blinky/README.md"
              archive="Blinky.zip" version="1.2.0" public="true">
         <description>Blinky LED example for Cortex-M4</description>
-        <board vendor="STMicroelectronics" name="NUCLEO-F401RE"
+        <board vendor="STMicroelectronics" name="NUCLEO-F401RE" revision="B"
                Dvendor="STMicroelectronics:13" Dname="STM32F401RETx"/>
         <project>
             <environment name="uv" load="Blinky.uvprojx"/>
@@ -168,7 +178,8 @@ mod tests {
         </project>
         <attributes>
             <category>Getting Started</category>
-            <component Cclass="CMSIS" Cgroup="RTOS2" Cversion="2.0.0" Cvendor="ARM"/>
+            <component Cclass="CMSIS" Cgroup="RTOS2" Cversion="2.0.0" Cvendor="ARM"
+                       Cbundle="ARM" Cvariant="Keil" Capiversion="1.0.0" instances="2"/>
             <keyword>LED</keyword>
             <keyword>Blinky</keyword>
         </attributes>
@@ -197,9 +208,8 @@ mod tests {
             vec![ExampleBoard {
                 vendor: "STMicroelectronics".to_string(),
                 name: "NUCLEO-F401RE".to_string(),
+                revision: Some("B".to_string()),
                 device_vendor: Some("STMicroelectronics:13".to_string()),
-                device_family: None,
-                device_sub_family: None,
                 device_name: Some("STM32F401RETx".to_string()),
             }]
         );
@@ -230,6 +240,10 @@ mod tests {
                 sub: None,
                 version: Some("2.0.0".to_string()),
                 vendor: Some("ARM".to_string()),
+                bundle: Some("ARM".to_string()),
+                variant: Some("Keil".to_string()),
+                api_version: Some("1.0.0".to_string()),
+                instances: Some(2),
             }]
         );
         assert_eq!(
@@ -312,6 +326,10 @@ mod tests {
                     sub: Some("IPv4".to_string()),
                     version: Some("7.15.0".to_string()),
                     vendor: Some("Keil".to_string()),
+                    bundle: None,
+                    variant: None,
+                    api_version: None,
+                    instances: None,
                 },
                 ExampleComponent {
                     class: "CMSIS".to_string(),
@@ -319,6 +337,10 @@ mod tests {
                     sub: None,
                     version: None,
                     vendor: None,
+                    bundle: None,
+                    variant: None,
+                    api_version: None,
+                    instances: None,
                 },
             ]
         );
