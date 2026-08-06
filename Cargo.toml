@@ -13,6 +13,10 @@ license = "MIT"
 name = "PIC32CM_PL"
 harness = false
 
+[[test]]
+name = "smoke_test"
+harness = false
+
 [dependencies]
 log = "0.4.33"
 roxmltree = "0.21.1"
@@ -21,6 +25,7 @@ serde-roxmltree = { version = "0.11.3", features = ["raw-node"] }
 
 [dev-dependencies]
 env_logger = "0.11.11"
+zip = "8.6.0"
 
 [lints.clippy]
 pedantic = { level = "deny", priority = -1 }
