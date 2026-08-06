@@ -97,6 +97,9 @@ pub struct ApiFile {
 
     /// Project-relative path override for the file
     pub projectpath: Option<String>,
+
+    /// Deprecated, use `attr="config"` instead
+    pub copy: Option<String>,
 }
 
 #[cfg(test)]
@@ -147,6 +150,7 @@ mod tests {
                             scope: None,
                             public: None,
                             projectpath: None,
+                            copy: None,
                         },
                         ApiFile {
                             name: "CMSIS/RTOS2/Doc/index.html".to_string(),
@@ -161,6 +165,7 @@ mod tests {
                             scope: None,
                             public: Some(true),
                             projectpath: None,
+                            copy: None,
                         },
                     ],
                 }),
