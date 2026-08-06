@@ -69,14 +69,14 @@ pub struct License {
 /// Represents the [PDSC Dominate](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_dominate.html) element
 pub struct Dominate {
     /// Descriptive text that explains the reason for dominate
-    pub info: Option<String>,
+    pub info: String,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC Repository](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_repository.html) element
 pub struct Repository {
     #[serde(rename = "type")]
-    pub repository_type: String,
+    pub repository_type: Option<String>,
 
     #[serde(rename = "#content")]
     pub url: String,
@@ -124,6 +124,10 @@ pub struct Changelog {
 
     /// If `true` this changelog is associated with all APIs and components that do not explicitly reference another changelog; xs:boolean (`"true"` / `"false"`)
     pub default: Option<bool>,
+
+    /// File type of the changelog file; `text/plain;charset=UTF-8` is assumed if not specified
+    #[serde(rename = "type")]
+    pub changelog_type: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
@@ -241,7 +245,7 @@ mod tests {
 
         let repo: Repository = serde_roxmltree::from_str(xml_str).unwrap();
 
-        assert_eq!(repo.repository_type, "git".to_string());
+        assert_eq!(repo.repository_type, Some("git".to_string()));
         assert_eq!(
             repo.url,
             "https://github.com/ARM-software/CMSIS-Driver.git".to_string()
