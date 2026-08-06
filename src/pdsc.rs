@@ -5,13 +5,13 @@ use serde::{Deserialize, Serialize};
 use crate::family::Family;
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
-/// Represents the [PDSC Descrpiton](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_package_description.html)
+/// Represents the [PDSC Descrpition](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_package_description.html)
 /// element.
 pub struct Description {
     /// File path, file name, and file extension with an overview of documentation in markdown format
     pub overview: Option<String>,
 
-    /// The description body contaning a brief markdown desrciption
+    /// The description body containing a brief markdown desrciption
     #[serde(rename = "#content")]
     pub content: Option<String>,
 }
@@ -36,13 +36,13 @@ pub struct LicenseSets {
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC LicenseSetsType](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_licenseSets_pg.html#element_licenseSets)
 pub struct LicenseSet {
-    /// License set identifier string, must be uniqe in the PDSC file
+    /// License set identifier string, must be uniuqe in the PDSC file
     pub id: String,
     /// If set to true this license set is associated with all content, not explicitly referencing another license set
     pub default: Option<bool>,
     /// If set to true this license set is required to be accepted by the user before installation starts.
     pub gating: Option<bool>,
-    /// Description of the license file refeneces
+    /// Description of the license file refereneces
     pub license: Vec<License>,
 }
 
@@ -55,7 +55,7 @@ pub struct License {
     /// License filename with pack base directory relative path
     pub name: String,
 
-    /// Display sting used by tools to represent the license
+    /// Display string used by tools to represent the license
     pub title: String,
 
     /// Machine readable licence ID string according to the [SPDX License List](https://spdx.org/licenses/)
@@ -89,7 +89,7 @@ pub struct Releases {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
-/// Represents the [PDSC Releaes](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_releases.html#element_release) element
+/// Represents the [PDSC Release](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/element_releases.html#element_release) element
 pub struct Release {
     /// Release version string
     pub version: String,
@@ -116,10 +116,10 @@ pub struct Changelogs {
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 /// Represents the [PDSC Changelog](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_changelogs_pg.html#element_changelog) element
 pub struct Changelog {
-    /// Changelog identifier string, must be uniqe within the PDSC file
+    /// Changelog identifier string, must be uniuqe within the PDSC file
     pub id: String,
 
-    /// A path relative to the PDSC fil and the filename of the changelog file
+    /// A path relative to the PDSC file and the filename of the changelog file
     pub name: String,
 
     /// If `true` this changelog is associated with all APIs and components that do not explicitly reference another changelog; xs:boolean (`"true"` / `"false"`)
@@ -135,7 +135,7 @@ pub struct Keywords {
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
-/// Represents the [PDSC Envrionments](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_components_pg.html#element_component_environments) element
+/// Represents the [PDSC Environments](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_components_pg.html#element_component_environments) element
 pub struct Environments {
     /// The vector of environments
     #[serde(rename = "environment")]

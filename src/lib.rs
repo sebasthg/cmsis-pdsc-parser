@@ -22,7 +22,7 @@
 //! const PDSC_PATH: &str = "Microchip.PIC32CM-PL_DFP.pdsc";
 //!
 //! fn main() {
-//!     // Read the document conent into memory
+//!     // Read the document content into memory
 //!     let mut f = std::fs::File::open(PDSC_PATH).unwrap();
 //!     let mut pdsc_content: String = String::new();
 //!     f.read_to_string(&mut pdsc_content).unwrap();
@@ -83,16 +83,16 @@ pub struct Package<'a> {
     #[serde(rename = "Tcompiler")]
     pub t_compiler: Option<String>,
 
-    /// Brief description of the sofware pack
+    /// Brief description of the software pack
     pub description: pdsc::Description,
 
     /// Export Control Classification Numbers for the EU and US
     pub eccn: Option<pdsc::Eccn>,
 
-    /// URL or file URI of the sotware pack
+    /// URL or file URI of the software pack
     pub url: String,
 
-    /// URL or e-main for users to get support for the Pack content
+    /// URL or e-mail for users to get support for the Pack content
     pub support_contact: Option<String>,
 
     /// Path to the license document of the Pack
@@ -108,7 +108,7 @@ pub struct Package<'a> {
     pub requirements: Option<requirements::Requirements>,
 
     // The deprecated `create` element is intentionally not modelled.
-    /// HTTPS URL of a public repository tat the pack originates from
+    /// HTTPS URL of a public repository that the pack originates from
     pub repository: Option<pdsc::Repository>,
 
     /// Version release history with brief information about a software pack
@@ -170,7 +170,7 @@ impl<'a> Package<'a> {
         // Parse the content
         let mut package: Package = serde_roxmltree::from_doc(document)?;
 
-        // Parse the "wild" string conents into structured data
+        // Parse the "wild" string contents into structured data
         for family in &mut package.devices.families {
             family.debugvars.parse_debugvars();
             family.sequences.parse_sequences()?;

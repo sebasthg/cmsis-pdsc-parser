@@ -24,7 +24,7 @@ use std::io::read;
 const PDSC_PATH: &str = "Microchip.PIC32CM-PL_DFP.pdsc";
 
 fn main() {
-    // Read the document conent into memory
+    // Read the document content into memory
     let mut f = std::fs::File::open(PDSC_PATH).unwrap();
     let mut pdsc_content: String = String::new();
     f.read_to_string(&mut pdsc_content).unwrap();
