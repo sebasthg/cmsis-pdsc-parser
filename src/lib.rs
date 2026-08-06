@@ -65,7 +65,7 @@ pub struct Package<'a> {
     pub vendor: String,
 
     /// PDSC schema version; valid values defined by [PDSC schema versioning](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
-    pub schema_version: Option<String>,
+    pub schema_version: String,
 
     /// Restricts pack to a specific core; valid values: [DcoreEnum](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
     #[serde(rename = "Dcore")]
