@@ -1,6 +1,6 @@
 use std::io::Read;
 
-use log::{trace, debug, info};
+use log::{debug, info, trace};
 use zip;
 
 use cmsis_pdsc_parser::Package;
@@ -19,9 +19,14 @@ fn main() {
 
     // Assert that we have the expected number of files
     info!("Openened {PDSC_PATH} and found {} files", archive.len());
-    assert_eq!(archive.len(), 10_006, "Wrong number of files in PDSC archive");
+    assert_eq!(
+        archive.len(),
+        10_006,
+        "Wrong number of files in PDSC archive"
+    );
 
     // Parse each PDSC file entry
+    let mut success_count: usize = 0;
     for i in 0..archive.len() {
         let mut file = archive.by_index(i).unwrap();
         debug!("Testing {}", file.name());
@@ -36,7 +41,15 @@ fn main() {
 
         // Parse the file
         let document = roxmltree::Document::parse(&pdsc_content).unwrap();
-        let pdsc = Package::new(&document).unwrap();
+        let pdsc = match Package::new(&document) {
+            Ok(pdsc) => pdsc,
+            Err(e) => panic!(
+                "Failed to parse {} (file #{i}, {success_count} succeeded so far): {e}",
+                file.name()
+            ),
+        };
         trace!("Got: {pdsc:#?}");
+        success_count += 1;
     }
+    info!("Successfully parsed {success_count} files");
 }

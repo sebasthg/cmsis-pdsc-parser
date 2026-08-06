@@ -144,7 +144,7 @@ pub struct Package<'a> {
 
     #[serde(borrow)]
     /// The device family, the devices, and variants
-    pub devices: pdsc::Devices<'a>,
+    pub devices: Option<pdsc::Devices<'a>>,
 
     /// Conditions defined for use throughout this pack
     pub conditions: Option<conditions::Conditions>,
@@ -171,7 +171,11 @@ impl<'a> Package<'a> {
         let mut package: Package = serde_roxmltree::from_doc(document)?;
 
         // Parse the "wild" string contents into structured data
-        for family in &mut package.devices.families {
+        for family in package
+            .devices
+            .iter_mut()
+            .flat_map(|devices| devices.families.iter_mut())
+        {
             family.debugvars.parse_debugvars();
             family.sequences.parse_sequences()?;
             family.flashinfo = family::parse_flashinfo(&family.flashinfo_raw)?;

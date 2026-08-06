@@ -86,8 +86,9 @@ pub struct Family<'a> {
     /// Date this family was deprecated (`xs:date`, e.g. `2020-01-01`)
     pub deprecated: Option<String>,
 
-    /// Brief family description
-    pub description: Option<String>,
+    /// Brief family description (0..*)
+    #[serde(rename = "description", default)]
+    pub description: Vec<String>,
 
     /// Processor definitions (0..*)
     #[serde(rename = "processor", default)]
@@ -800,8 +801,9 @@ pub struct Variant<'a> {
     pub variant_name: String,
     /// Date this variant was deprecated (`xs:date`, e.g. `2020-01-01`)
     pub deprecated: Option<String>,
-    /// Brief variant description
-    pub description: Option<String>,
+    /// Brief variant description (0..*)
+    #[serde(rename = "description", default)]
+    pub description: Vec<String>,
     /// Processor definitions (0..*)
     #[serde(rename = "processor", default)]
     pub processor: Vec<Processor>,
@@ -863,8 +865,9 @@ pub struct Device<'a> {
     pub device_name: String,
     /// Date this device was deprecated (`xs:date`, e.g. `2020-01-01`)
     pub deprecated: Option<String>,
-    /// Brief device description
-    pub description: Option<String>,
+    /// Brief device description (0..*)
+    #[serde(rename = "description", default)]
+    pub description: Vec<String>,
     /// Processor definitions (0..*)
     #[serde(rename = "processor", default)]
     pub processor: Vec<Processor>,
@@ -929,8 +932,9 @@ pub struct SubFamily<'a> {
     pub sub_family_name: String,
     /// Date this sub-family was deprecated (`xs:date`, e.g. `2020-01-01`)
     pub deprecated: Option<String>,
-    /// Brief sub-family description
-    pub description: Option<String>,
+    /// Brief sub-family description (0..*)
+    #[serde(rename = "description", default)]
+    pub description: Vec<String>,
     /// Processor definitions (0..*)
     #[serde(rename = "processor", default)]
     pub processor: Vec<Processor>,
@@ -1644,7 +1648,7 @@ mod tests {
         let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
         assert_eq!(
             family.description,
-            Some("STM32F1 Arm Cortex-M3 microcontroller series".to_string())
+            vec!["STM32F1 Arm Cortex-M3 microcontroller series".to_string()]
         );
         assert_eq!(family.processor.len(), 0);
     }

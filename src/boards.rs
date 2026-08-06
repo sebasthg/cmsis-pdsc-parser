@@ -49,8 +49,9 @@ pub struct Board {
     #[serde(rename = "orderForm")]
     pub order_form: Option<String>,
 
-    /// Brief board description (max 256 characters); optional per spec (0..1)
-    pub description: Option<String>,
+    /// Brief board description (max 256 characters) (0..*)
+    #[serde(rename = "description", default)]
+    pub description: Vec<String>,
 
     /// Board features and capabilities (1..*)
     #[serde(rename = "feature", default)]
@@ -392,7 +393,7 @@ mod tests {
         assert_eq!(board.revision, Some("Rev.C".to_string()));
         assert_eq!(
             board.description,
-            Some("STM32 Nucleo-64 development board with STM32F401RE MCU".to_string())
+            vec!["STM32 Nucleo-64 development board with STM32F401RE MCU".to_string()]
         );
         assert_eq!(
             board.features,
@@ -497,7 +498,7 @@ mod tests {
         assert_eq!(board.name, "MyBoard");
         assert_eq!(board.revision, None);
         assert_eq!(board.uuid, None);
-        assert_eq!(board.description, Some("A minimal test board".to_string()));
+        assert_eq!(board.description, vec!["A minimal test board".to_string()]);
         assert_eq!(
             board.features,
             vec![Feature {

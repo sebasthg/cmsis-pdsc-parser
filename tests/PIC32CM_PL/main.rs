@@ -176,7 +176,7 @@ fn main() {
     assert_eq!(keywords, expected_keywords);
 
     // Validate family info
-    let family = &pdsc.devices.families[0];
+    let family = &pdsc.devices.as_ref().unwrap().families[0];
     assert_eq!(&family.device_family, "PIC32CM-PL");
     assert_eq!(&family.vendor, "Microchip:3");
     assert_eq!(
