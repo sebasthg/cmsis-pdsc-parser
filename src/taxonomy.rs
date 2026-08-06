@@ -34,6 +34,9 @@ pub struct TaxonomyDescription {
     /// Publishing permission; default `true`
     pub public: Option<bool>,
 
+    /// Condition ID that applies to this class/group
+    pub condition: Option<String>,
+
     /// Human-readable description of the component class or group; empty string if absent
     #[serde(rename = "#content")]
     pub content: String,
@@ -151,7 +154,7 @@ mod tests {
         let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
 <taxonomy>
     <description Cclass="Device" Cgroup="Startup" doc="Device/Doc/startup.htm"
-                 generator="MyGen" public="true">ARM Cortex-M device startup</description>
+                 generator="MyGen" public="true" condition="MyCondition">ARM Cortex-M device startup</description>
     <description Cclass="Board Support"/>
 </taxonomy>"#;
 
@@ -166,6 +169,7 @@ mod tests {
                 doc: Some("Device/Doc/startup.htm".to_string()),
                 generator: Some("MyGen".to_string()),
                 public: Some(true),
+                condition: Some("MyCondition".to_string()),
                 content: "ARM Cortex-M device startup".to_string(),
             }
         );
@@ -177,6 +181,7 @@ mod tests {
                 doc: None,
                 generator: None,
                 public: None,
+                condition: None,
                 content: "".to_string(),
             }
         );
