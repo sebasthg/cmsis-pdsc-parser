@@ -85,10 +85,6 @@ pub struct Filter {
     #[serde(rename = "Dmve")]
     pub mve: Option<String>,
 
-    /// Custom Datapath Extension co-processor support
-    #[serde(rename = "Dcdecp")]
-    pub cdecp: Option<String>,
-
     /// Pointer Authentication and Branch Target Identification support
     #[serde(rename = "Dpacbti")]
     pub pacbti: Option<String>,
@@ -156,6 +152,10 @@ pub struct Filter {
     /// Compiler options or mode (e.g. `AC5`, `AC6`)
     #[serde(rename = "Toptions")]
     pub compiler_options: Option<String>,
+
+    /// Compiler output type (e.g. `exe`, `lib`)
+    #[serde(rename = "Toutput")]
+    pub compiler_output: Option<String>,
 
     /// References another condition by its `id`; this filter is true only if that condition is true
     pub condition: Option<String>,
@@ -245,14 +245,14 @@ mod tests {
     <condition id="Complex">
         <accept Dvendor="ARM:82" Dname="ARMCM4*" Dcore="Cortex-M4"
                 Dfpu="SP_FPU" Dmpu="MPU" Dtz="TZ" Dsecure="Secure"
-                Ddsp="DSP" Dmve="MVE" Dcdecp="CDECP" Dpacbti="PACBTI"
+                Ddsp="DSP" Dmve="MVE" Dpacbti="PACBTI"
                 Dendian="Little-endian" Pname="Core0"/>
         <require Cclass="CMSIS" Cgroup="RTOS2" Capiversion="2.0.0"
                  Cvendor="ARM" Cbundle="CMSIS" Csub="Core"
                  Cvariant="Release" Cversion="5.0.0"/>
         <require Bvendor="ARM" Bname="V2M-MPS2" Brevision="Rev.C"
                  Hvendor="NXP" Hname="LPC1768"
-                 Tcompiler="GCC" Toptions="AC6"/>
+                 Tcompiler="GCC" Toptions="AC6" Toutput="exe"/>
         <deny condition="NoARM"/>
     </condition>
 </conditions>"#;
@@ -272,7 +272,6 @@ mod tests {
         assert_eq!(a.secure, Some("Secure".to_string()));
         assert_eq!(a.dsp, Some("DSP".to_string()));
         assert_eq!(a.mve, Some("MVE".to_string()));
-        assert_eq!(a.cdecp, Some("CDECP".to_string()));
         assert_eq!(a.pacbti, Some("PACBTI".to_string()));
         assert_eq!(a.endian, Some("Little-endian".to_string()));
         assert_eq!(a.processor_name, Some("Core0".to_string()));
@@ -299,6 +298,7 @@ mod tests {
         assert_eq!(r1.part_name, Some("LPC1768".to_string()));
         assert_eq!(r1.compiler, Some("GCC".to_string()));
         assert_eq!(r1.compiler_options, Some("AC6".to_string()));
+        assert_eq!(r1.compiler_output, Some("exe".to_string()));
         assert_eq!(r1.class, None);
 
         // Deny filter — condition cross-reference
