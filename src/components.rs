@@ -48,6 +48,13 @@ pub struct Bundle {
     /// References a changelog ID with the bundle change history
     pub changelog: Option<String>,
 
+    /// Links to a `<generator>` entry in the same pack
+    pub generator: Option<String>,
+
+    /// Marks this variant as the preferred choice for automated updates
+    #[serde(rename = "isDefaultVariant")]
+    pub is_default_variant: Option<bool>,
+
     /// Brief description of the bundle (max 256 characters)
     pub description: String,
 
@@ -198,6 +205,9 @@ pub struct ComponentFile {
 
     /// IDE project explorer location override
     pub projectpath: Option<String>,
+
+    /// Deprecated, use `attr="config"` instead
+    pub copy: Option<String>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
@@ -461,6 +471,7 @@ mod tests {
                 scope: Some("public".to_string()),
                 public: None,
                 projectpath: None,
+                copy: None,
             }
         );
         assert_eq!(files[1].attr, Some("config".to_string()));
