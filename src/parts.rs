@@ -56,7 +56,8 @@ pub struct Part {
     pub image: Option<Image>,
 
     /// IDE-specific tool environments for this part (0..*)
-    pub environments: Option<PartEnvironments>,
+    #[serde(rename = "environment", default)]
+    pub environments: Vec<PartEnvironment>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
@@ -78,6 +79,9 @@ pub struct Feature {
 
     /// Descriptive feature name
     pub name: Option<String>,
+
+    /// Deprecated; only kept for backwards compatibility
+    pub count: Option<i32>,
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
@@ -124,14 +128,6 @@ pub struct PartEnvironment {
     pub processor_name: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
-/// Groups part environment entries for a [PDSC part](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_parts_pg.html#element_part)
-pub struct PartEnvironments {
-    /// Individual environment entries (0..*)
-    #[serde(rename = "environment", default)]
-    pub environments: Vec<PartEnvironment>,
-}
-
 #[cfg(test)]
 mod tests {
     use crate::parts::{Book, Feature, Image, PartEnvironment, Parts};
@@ -174,6 +170,7 @@ mod tests {
                     n: Some("1".to_string()),
                     m: None,
                     name: Some("Cortex-M0+ processor".to_string()),
+                    count: None,
                 },
                 Feature {
                     processor_name: None,
@@ -181,6 +178,7 @@ mod tests {
                     n: Some("6".to_string()),
                     m: None,
                     name: None,
+                    count: None,
                 },
             ]
         );
@@ -265,10 +263,8 @@ mod tests {
         let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
 <parts>
     <part Hname="MY-CHIP-001">
-        <environments>
-            <environment name="uvision"/>
-            <environment name="iar" Pname="Core0"/>
-        </environments>
+        <environment name="uvision"/>
+        <environment name="iar" Pname="Core0"/>
     </part>
 </parts>"#;
 
@@ -277,20 +273,16 @@ mod tests {
 
         let part = &parts.parts[0];
         assert_eq!(part.name, "MY-CHIP-001");
-        let envs = part
-            .environments
-            .as_ref()
-            .expect("environments should be present");
-        assert_eq!(envs.environments.len(), 2);
+        assert_eq!(part.environments.len(), 2);
         assert_eq!(
-            envs.environments[0],
+            part.environments[0],
             PartEnvironment {
                 name: "uvision".to_string(),
                 processor_name: None,
             }
         );
         assert_eq!(
-            envs.environments[1],
+            part.environments[1],
             PartEnvironment {
                 name: "iar".to_string(),
                 processor_name: Some("Core0".to_string()),
