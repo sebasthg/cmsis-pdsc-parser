@@ -394,6 +394,39 @@ pub struct FamilyDebug {
     pub apid: Option<u32>,
     /// Base address of the debug component
     pub address: Option<String>,
+    /// Default debug sequence used to reset this debug unit
+    #[serde(rename = "defaultResetSequence")]
+    pub default_reset_sequence: Option<String>,
+    /// Data patches applied to this debug unit (0..*)
+    #[serde(rename = "datapatch", default)]
+    pub datapatch: Vec<DataPatch>,
+}
+
+/// Represents a [PDSC datapatch](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_datapatch) element
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
+pub struct DataPatch {
+    /// Access type; valid values: `AP`, `Mem`
+    #[serde(rename = "type")]
+    pub patch_type: Option<String>,
+    /// Address to patch (hex or decimal string)
+    #[serde(deserialize_with = "de_uint")]
+    pub address: u32,
+    /// Debug port index
+    #[serde(rename = "__dp")]
+    pub dp: Option<u32>,
+    /// Access port index
+    #[serde(rename = "__ap")]
+    pub ap: Option<u32>,
+    /// Value to write during the patch (hex or decimal string)
+    #[serde(deserialize_with = "de_uint")]
+    pub value: u32,
+    /// Optional bitmask applied to the patch
+    pub mask: Option<String>,
+    /// Descriptive text about the patch
+    pub info: Option<String>,
+    /// Access port identifier
+    #[serde(rename = "__apid")]
+    pub apid: Option<u32>,
 }
 
 /// Represents a [PDSC debugconfig](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_debugconfig) element
@@ -409,6 +442,8 @@ pub struct DebugConfig {
     /// Dormant state is supported
     #[serde(default, deserialize_with = "de_opt_bool")]
     pub dormant: Option<bool>,
+    /// Path to the debugger system description file
+    pub sdf: Option<String>,
 }
 
 /// Represents a [PDSC debugport](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_debugport) element
@@ -481,15 +516,20 @@ pub struct AccessPortV2 {
     pub parent: Option<u32>,
 }
 
+/// Returns the XSD default value (`"Little-endian"`) for [`Algorithm::endian`]
+fn default_algorithm_endian() -> String {
+    "Little-endian".to_string()
+}
+
 /// Represents a [PDSC algorithm](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_algorithm) element
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct Algorithm {
     /// Path to the flash algorithm file (.FLM)
     pub name: String,
     /// Start address of the flash region (hex string, e.g. `"0x00000000"`)
-    pub start: String,
+    pub start: Option<String>,
     /// Size of the flash region in bytes (hex string, e.g. `"0x00010000"`)
-    pub size: String,
+    pub size: Option<String>,
     /// Start address of the RAM buffer used by the algorithm
     #[serde(rename = "RAMstart")]
     pub ram_start: Option<String>,
@@ -504,17 +544,25 @@ pub struct Algorithm {
     /// Processor instance name this algorithm applies to
     #[serde(rename = "Pname")]
     pub pname: Option<String>,
+    /// Index of the mounted device this algorithm applies to (only used by board descriptions with multiple mounted devices)
+    #[serde(rename = "deviceIndex")]
+    pub device_index: Option<String>,
+    /// Parameter passed on algorithm invocation
+    pub parameter: Option<String>,
+    /// Endianness of the algorithm; valid values: [DendianEnum](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html); defaults to `"Little-endian"`
+    #[serde(default = "default_algorithm_endian")]
+    pub endian: String,
 }
 
 /// Represents a [PDSC flashinfo](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_flashinfo) element
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct FlashInfo {
-    /// Path to the flash device description file
-    pub name: Option<String>,
+    /// Name of the flash device
+    pub name: String,
     /// Start address of the flash device (hex string)
     pub start: String,
     /// Flash page size in bytes (hex string)
-    pub pagesize: Option<String>,
+    pub pagesize: String,
     /// Erased-byte value (hex string, usually `"0xFF"`)
     pub blankval: Option<String>,
     /// Fill byte value for gaps (hex string)
@@ -542,14 +590,13 @@ pub struct FlashBlock {
     pub count: u32,
     /// Sector size in bytes (hex string)
     pub size: String,
+    /// Optional argument to pass to a sequence that is part of a flash operation
+    pub arg: Option<String>,
 }
 
 /// A gap between flash regions
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
 pub struct FlashGap {
-    /// Count of gap sectors
-    #[serde(deserialize_with = "de_uint")]
-    pub count: u32,
     /// Gap sector size in bytes (hex string)
     pub size: String,
 }
@@ -587,17 +634,39 @@ pub struct Trace {
     /// Processor instance name
     #[serde(rename = "Pname")]
     pub pname: Option<String>,
-    /// Debug port index
-    #[serde(rename = "__dp")]
-    pub dp: Option<u32>,
-    /// Access port identifier for the trace funnel
-    #[serde(rename = "__apid")]
-    pub apid: Option<u32>,
-    /// Base address of the trace component
-    pub address: Option<String>,
-    /// Trace type (`ETM`, `MTB`, `SWO`, `TPIU`)
-    #[serde(rename = "type")]
-    pub trace_type: Option<String>,
+    /// Serial wire trace configurations (0..*)
+    #[serde(rename = "serialwire", default)]
+    pub serialwire: Vec<SerialWire>,
+    /// Parallel trace port configurations (0..*)
+    #[serde(rename = "traceport", default)]
+    pub traceport: Vec<TracePort>,
+    /// Trace buffer configurations (0..*)
+    #[serde(rename = "tracebuffer", default)]
+    pub tracebuffer: Vec<TraceBuffer>,
+}
+
+/// Represents a [PDSC serialwire](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_serialwire) element
+///
+/// This element only defines vendor/tool-specific `anyAttribute` attributes in the schema, none of which are modeled.
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
+pub struct SerialWire {
+    // TODO: Handle the `anyAttribute` children
+}
+
+/// Represents a [PDSC traceport](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_traceport) element
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
+pub struct TracePort {
+    /// Width of the parallel trace port in bits
+    pub width: Option<u32>,
+}
+
+/// Represents a [PDSC tracebuffer](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_tracebuffer) element
+#[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
+pub struct TraceBuffer {
+    /// Start address of the trace buffer (hex string)
+    pub start: Option<String>,
+    /// Size of the trace buffer in bytes (hex string)
+    pub size: Option<String>,
 }
 
 /// Represents a [PDSC book](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_book) element
@@ -1508,11 +1577,14 @@ mod tests {
         assert_eq!(family.algorithm.len(), 1);
         let a = &family.algorithm[0];
         assert_eq!(a.name, "Flash/STM32F1xx_128.FLM");
-        assert_eq!(a.start, "0x08000000");
-        assert_eq!(a.size, "0x00020000");
+        assert_eq!(a.start, Some("0x08000000".to_string()));
+        assert_eq!(a.size, Some("0x00020000".to_string()));
         assert_eq!(a.ram_start, Some("0x20000000".to_string()));
         assert_eq!(a.ram_size, Some("0x00001000".to_string()));
         assert_eq!(a.default, Some(true));
+        assert_eq!(a.device_index, None);
+        assert_eq!(a.parameter, None);
+        assert_eq!(a.endian, "Little-endian");
     }
 
     #[test]
@@ -1659,7 +1731,7 @@ mod tests {
     fn parse_family_flashinfo() {
         let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
 <family Dfamily="STM32F1" Dvendor="STMicroelectronics:13">
-    <flashinfo start="0x08000000" pagesize="0x400" blankval="0xFF">
+    <flashinfo name="Flash" start="0x08000000" pagesize="0x400" blankval="0xFF">
         <block count="128" size="0x400"/>
     </flashinfo>
     <debugvars></debugvars>
@@ -1669,29 +1741,39 @@ mod tests {
         let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
         assert_eq!(family.flashinfo.len(), 1);
         let fi = &family.flashinfo[0];
+        assert_eq!(fi.name, "Flash");
         assert_eq!(fi.start, "0x08000000");
-        assert_eq!(fi.pagesize, Some("0x400".to_string()));
+        assert_eq!(fi.pagesize, "0x400");
         assert_eq!(fi.blankval, Some("0xFF".to_string()));
         assert_eq!(fi.blocks.len(), 1);
         assert_eq!(fi.blocks[0].count, 128);
         assert_eq!(fi.blocks[0].size, "0x400");
+        assert_eq!(fi.blocks[0].arg, None);
     }
 
     #[test]
     fn parse_family_trace() {
         let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
 <family Dfamily="STM32F1" Dvendor="STMicroelectronics:13">
-    <trace __dp="0" __apid="1" address="0xE0041000" type="ETM"/>
+    <trace Pname="Core0">
+        <serialwire/>
+        <traceport width="4"/>
+        <tracebuffer start="0xE0041000" size="0x1000"/>
+    </trace>
     <debugvars></debugvars>
     <sequences/>
 </family>"#;
         let document = Document::parse(xml_str).unwrap();
         let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
         assert_eq!(family.trace.len(), 1);
-        assert_eq!(family.trace[0].dp, Some(0));
-        assert_eq!(family.trace[0].apid, Some(1));
-        assert_eq!(family.trace[0].address, Some("0xE0041000".to_string()));
-        assert_eq!(family.trace[0].trace_type, Some("ETM".to_string()));
+        let trace = &family.trace[0];
+        assert_eq!(trace.pname, Some("Core0".to_string()));
+        assert_eq!(trace.serialwire.len(), 1);
+        assert_eq!(trace.traceport.len(), 1);
+        assert_eq!(trace.traceport[0].width, Some(4));
+        assert_eq!(trace.tracebuffer.len(), 1);
+        assert_eq!(trace.tracebuffer[0].start, Some("0xE0041000".to_string()));
+        assert_eq!(trace.tracebuffer[0].size, Some("0x1000".to_string()));
     }
 
     #[test]
