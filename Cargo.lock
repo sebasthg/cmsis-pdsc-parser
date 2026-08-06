@@ -373,9 +373,9 @@ dependencies = [
 
 [[package]]
 name = "serde-roxmltree"
-version = "0.11.2"
+version = "0.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b38f3d6915e6af9787a600864c651a0d8ee9de938baf1997cbe92c9a8eb6231"
+checksum = "16f2f62fdfd54995b0f97d698c0346c14619f4a51cd1ed83707045ec7524b949"
 dependencies = [
  "bit-set",
  "roxmltree",

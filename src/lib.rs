@@ -193,7 +193,7 @@ impl<'a> Package<'a> {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 /// Errors
 pub enum Error {
     SerdeRoxmltree(serde_roxmltree::Error),
