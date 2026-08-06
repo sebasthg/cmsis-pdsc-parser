@@ -83,6 +83,9 @@ pub struct Family<'a> {
     /// The device manufacturer/vendor; valid values: [DeviceVendorEnum](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/packFormat.html)
     pub vendor: String,
 
+    /// Date this family was deprecated (`xs:date`, e.g. `2020-01-01`)
+    pub deprecated: Option<String>,
+
     /// Brief family description
     pub description: Option<String>,
 
@@ -150,10 +153,11 @@ pub struct Family<'a> {
     pub devices: Vec<Device<'a>>,
 
     /// Global debug variables
+    #[serde(default)]
     pub debugvars: Debugvars,
 
     /// Debug sequences
-    #[serde(borrow)]
+    #[serde(borrow, default)]
     pub sequences: Sequences<'a>,
 }
 
@@ -706,6 +710,8 @@ pub struct Feature {
     /// Processor instance name this feature applies to
     #[serde(rename = "Pname")]
     pub pname: Option<String>,
+    /// Deprecated; count of identical features (only for backwards compatibility)
+    pub count: Option<i32>,
 }
 
 /// Represents an [environment](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_environment) entry within a family
@@ -722,10 +728,12 @@ pub struct FamilyEnvironment {
 ///
 /// Defines a named variant of a device, overriding or extending the parent device's properties.
 #[derive(Debug, PartialEq, Eq, Clone, Default, Deserialize, Serialize)]
-pub struct Variant {
+pub struct Variant<'a> {
     /// Variant name
     #[serde(rename = "Dvariant")]
     pub variant_name: String,
+    /// Date this variant was deprecated (`xs:date`, e.g. `2020-01-01`)
+    pub deprecated: Option<String>,
     /// Brief variant description
     pub description: Option<String>,
     /// Processor definitions (0..*)
@@ -769,6 +777,12 @@ pub struct Variant {
     /// Tool environment entries (0..*)
     #[serde(rename = "environment", default)]
     pub environment: Vec<FamilyEnvironment>,
+    /// Variant-level debug variables (rare; most packs define these at family level)
+    #[serde(default)]
+    pub debugvars: Debugvars,
+    /// Variant-level debug sequences (rare; most packs define these at family level)
+    #[serde(borrow, default)]
+    pub sequences: Sequences<'a>,
 }
 
 /// Represents a [PDSC device](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_device) element
@@ -777,6 +791,8 @@ pub struct Device<'a> {
     /// Device name
     #[serde(rename = "Dname")]
     pub device_name: String,
+    /// Date this device was deprecated (`xs:date`, e.g. `2020-01-01`)
+    pub deprecated: Option<String>,
     /// Brief device description
     pub description: Option<String>,
     /// Processor definitions (0..*)
@@ -828,7 +844,7 @@ pub struct Device<'a> {
     pub sequences: Sequences<'a>,
     /// Device variants (0..*)
     #[serde(rename = "variant", default)]
-    pub variants: Vec<Variant>,
+    pub variants: Vec<Variant<'a>>,
 }
 
 /// Represents a [PDSC subFamily](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#element_subFamily) element
@@ -837,6 +853,8 @@ pub struct SubFamily<'a> {
     /// Sub-family name
     #[serde(rename = "DsubFamily")]
     pub sub_family_name: String,
+    /// Date this sub-family was deprecated (`xs:date`, e.g. `2020-01-01`)
+    pub deprecated: Option<String>,
     /// Brief sub-family description
     pub description: Option<String>,
     /// Processor definitions (0..*)
@@ -1652,6 +1670,22 @@ mod tests {
     }
 
     #[test]
+    fn parse_family_feature_count() {
+        // Deprecated `count` attribute on `feature`, kept for backwards compatibility
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<family Dfamily="STM32F1" Dvendor="STMicroelectronics:13">
+    <feature type="UART" n="3" count="2"/>
+    <feature type="ADC" n="1" m="12"/>
+    <debugvars></debugvars>
+    <sequences/>
+</family>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(family.feature[0].count, Some(2));
+        assert_eq!(family.feature[1].count, None);
+    }
+
+    #[test]
     fn parse_family_debug_and_debugconfig() {
         let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
 <family Dfamily="STM32F1" Dvendor="STMicroelectronics:13">
@@ -1907,5 +1941,62 @@ mod tests {
         let d1 = &family.devices[1];
         assert_eq!(d1.device_name, "PIC32CM2532PL10028");
         assert_eq!(d1.memory[0].size, "0x40000");
+    }
+
+    #[test]
+    fn parse_deprecated_element() {
+        // `deprecated` is a child element (xs:date), not an attribute, and may appear at
+        // the family, subFamily, device and variant levels (DevicePropertiesGroup).
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<family Dfamily="STM32F1" Dvendor="STMicroelectronics:13">
+    <deprecated>2020-01-01</deprecated>
+    <debugvars></debugvars>
+    <sequences/>
+    <subFamily DsubFamily="STM32F103">
+        <deprecated>2020-02-02</deprecated>
+    </subFamily>
+    <device Dname="STM32F103C8">
+        <deprecated>2020-03-03</deprecated>
+        <variant Dvariant="STM32F103C8Tx">
+            <deprecated>2020-04-04</deprecated>
+        </variant>
+    </device>
+</family>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let family: crate::family::Family = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(family.deprecated, Some("2020-01-01".to_string()));
+        assert_eq!(
+            family.sub_families[0].deprecated,
+            Some("2020-02-02".to_string())
+        );
+        assert_eq!(family.devices[0].deprecated, Some("2020-03-03".to_string()));
+        assert_eq!(
+            family.devices[0].variants[0].deprecated,
+            Some("2020-04-04".to_string())
+        );
+    }
+
+    #[test]
+    fn parse_variant_debugvars_and_sequences() {
+        // `debugvars` and `sequences` are valid at the variant level too, mirroring
+        // Device and SubFamily.
+        let xml_str = r#"<?xml version="1.0" encoding="UTF-8"?>
+<device Dname="LPC1768">
+    <variant Dvariant="LPC1768FBD100">
+        <debugvars configfile="debug.dbgconf" version="1.0.0">__var myVar = 0x1;</debugvars>
+        <sequences/>
+    </variant>
+</device>"#;
+        let document = Document::parse(xml_str).unwrap();
+        let device: crate::family::Device = serde_roxmltree::from_doc(&document).unwrap();
+        assert_eq!(device.variants.len(), 1);
+        assert_eq!(
+            device.variants[0].debugvars.configfile,
+            Some("debug.dbgconf".to_string())
+        );
+        assert_eq!(
+            device.variants[0].debugvars.version,
+            Some("1.0.0".to_string())
+        );
     }
 }
