@@ -8,6 +8,10 @@ edition = "2024"
 readme = "README.md"
 repository = "https://github.com/sebasthg/cmsis-pdsc-parser"
 license = "MIT"
+exclude = [
+    "tests/*"
+]
+
 
 [[test]]
 name = "PIC32CM_PL"
