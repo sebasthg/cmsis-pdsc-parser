@@ -22,4 +22,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Initial project release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/crate-ci/cargo-release/compare/v1.1.4...HEAD
+[Unreleased]: https://github.com/sebasthg/cmsis-pdsc-parser/compare/7f3b6d6a1e3cff964dfe821f8d3bbacd4cf1b896..HEAD
