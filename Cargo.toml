@@ -1,5 +1,5 @@
 [package]
-name = "cmsis_pdsc_parser"
+name = "cmsis-pdsc-parser"
 description = "A CMSIS-Pack PDSC file parser for Rust"
 keywords = ["CMSIS", "CMSIS-Pack", "PDSC", "parser"]
 categories = ["api-bindings", "embedded", "parser-implementations"]
