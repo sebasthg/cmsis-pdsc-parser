@@ -25,4 +25,4 @@ Initial project release
 
 <!-- next-url -->
 [Unreleased]: https://github.com/sebasthg/cmsis-pdsc-parser/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/sebasthg/cmsis-pdsc-parser/compare/7f3b6d6a1e3cff964dfe821f8d3bbacd4cf1b896..HEAD
+[0.1.0]: https://github.com/sebasthg/cmsis-pdsc-parser/compare/7f3b6d6a1e3cff964dfe821f8d3bbacd4cf1b896..v0.1.0
