@@ -17,9 +17,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 
+## [0.1.0] - 2026-08-27
+
 ### Added
 
 Initial project release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/sebasthg/cmsis-pdsc-parser/compare/7f3b6d6a1e3cff964dfe821f8d3bbacd4cf1b896..HEAD
+[Unreleased]: https://github.com/sebasthg/cmsis-pdsc-parser/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/sebasthg/cmsis-pdsc-parser/compare/7f3b6d6a1e3cff964dfe821f8d3bbacd4cf1b896..HEAD
