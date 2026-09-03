@@ -17,15 +17,11 @@
 //! Minimal example:
 //!
 //! ```rust,no_run
-//! use std::io::Read;
-//!
 //! const PDSC_PATH: &str = "Microchip.PIC32CM-PL_DFP.pdsc";
 //!
 //! fn main() {
 //!     // Read the document content into memory
-//!     let mut f = std::fs::File::open(PDSC_PATH).unwrap();
-//!     let mut pdsc_content: String = String::new();
-//!     f.read_to_string(&mut pdsc_content).unwrap();
+//!     let pdsc_content: String = std::fs::read_to_string(PDSC_PATH).unwrap();
 //!
 //!     // Parse the XML document
 //!     let document = roxmltree::Document::parse(&pdsc_content).unwrap();
