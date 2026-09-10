@@ -16,6 +16,10 @@ work with non-standrd compilant PDSC files, within reason.
 6. Make sure the code has tests
 7. Create a pull-request
 
+### Commit requirements
+
+- AI-assisted commits must include a `Co-authored-by` trailer identifying the model by name only.
+
 ### Code style
 
 - `cargo fmt` has been run, requires [rustfmt](https://github.com/rust-lang/rustfmt)
