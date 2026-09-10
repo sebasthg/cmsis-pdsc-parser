@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 
+### Added
+- Source-like `Display` formatting for debug access functions and expressions.
+
 ### Changed
 - Usage example now follows [`verbose_file_reads` lint](https://rust-lang.github.io/rust-clippy/rust-1.97.0/index.html#verbose_file_reads)
 

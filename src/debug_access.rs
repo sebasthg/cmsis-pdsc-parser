@@ -1,6 +1,7 @@
 //! Types representing  [PDSC Debug Access](https://open-cmsis-pack.github.io/Open-CMSIS-Pack-Spec/main/html/pdsc_family_pg.html#block_DebugSyntaxRules)
 
 use serde::{Deserialize, Serialize};
+use std::fmt;
 
 use crate::debug_access::Statement::Comment;
 
@@ -171,6 +172,16 @@ impl TryFrom<&str> for Expression {
     }
 }
 
+impl fmt::Display for Expression {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Normal(value) => f.write_str(value),
+            Self::Conditional(condition) => condition.fmt(f),
+            Self::FunctionCall(function) => function.fmt(f),
+        }
+    }
+}
+
 #[derive(Debug, PartialEq, Eq, Clone, Deserialize, Serialize, Default)]
 /// An expression representing an inline if statement, e.g. `(x < y) ? a : b`
 ///
@@ -283,6 +294,16 @@ impl TryFrom<&str> for Conditional {
                 "conditional syntax: expected '(condition) ? truthy : falsy'".to_string(),
             ))
         }
+    }
+}
+
+impl fmt::Display for Conditional {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "({}) ? {} : {}",
+            self.condition, self.true_value, self.false_value
+        )
     }
 }
 
@@ -455,6 +476,165 @@ pub enum DebugFunction {
     },
     /// Load DWARF debug information
     LoadDebugInfo { file: Expression },
+}
+
+fn fmt_debug_function(f: &mut fmt::Formatter<'_>, name: &str, args: &[&Expression]) -> fmt::Result {
+    write!(f, "{name}(")?;
+    for (index, arg) in args.iter().enumerate() {
+        if index != 0 {
+            f.write_str(", ")?;
+        }
+        fmt::Display::fmt(*arg, f)?;
+    }
+    f.write_str(")")
+}
+
+impl fmt::Display for DebugFunction {
+    #[allow(clippy::too_many_lines)]
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Read8 { addr } => fmt_debug_function(f, "Read8", &[addr]),
+            Self::Read16 { addr } => fmt_debug_function(f, "Read16", &[addr]),
+            Self::Read32 { addr } => fmt_debug_function(f, "Read32", &[addr]),
+            Self::Read64 { addr } => fmt_debug_function(f, "Read64", &[addr]),
+            Self::Write8 { addr, val } => fmt_debug_function(f, "Write8", &[addr, val]),
+            Self::Write16 { addr, val } => fmt_debug_function(f, "Write16", &[addr, val]),
+            Self::Write32 { addr, val } => fmt_debug_function(f, "Write32", &[addr, val]),
+            Self::Write64 { addr, val } => fmt_debug_function(f, "Write64", &[addr, val]),
+            Self::ReadAP { addr } => fmt_debug_function(f, "ReadAP", &[addr]),
+            Self::WriteAP { addr, val } => fmt_debug_function(f, "WriteAP", &[addr, val]),
+            Self::ReadDP { addr } => fmt_debug_function(f, "ReadDP", &[addr]),
+            Self::WriteDP { addr, val } => fmt_debug_function(f, "WriteDP", &[addr, val]),
+            Self::ReadAccessAP { addr } => fmt_debug_function(f, "ReadAccessAP", &[addr]),
+            Self::WriteAccessAP { addr, val } => {
+                fmt_debug_function(f, "WriteAccessAP", &[addr, val])
+            }
+            Self::DapDelay { delay } => fmt_debug_function(f, "DAP_Delay", &[delay]),
+            Self::DapWriteAbort { value } => fmt_debug_function(f, "DAP_WriteABORT", &[value]),
+            Self::DapSwjPins {
+                pinout,
+                pinselect,
+                pinwait,
+            } => fmt_debug_function(f, "DAP_SWJ_Pins", &[pinout, pinselect, pinwait]),
+            Self::DapSwjClock { val } => fmt_debug_function(f, "DAP_SWJ_Clock", &[val]),
+            Self::DapSwjSequence { cnt, val } => {
+                fmt_debug_function(f, "DAP_SWJ_Sequence", &[cnt, val])
+            }
+            Self::DapJtagSequence { cnt, tms, tdi } => {
+                fmt_debug_function(f, "DAP_JTAG_Sequence", &[cnt, tms, tdi])
+            }
+            Self::Sequence { name } => fmt_debug_function(f, "Sequence", &[name]),
+            Self::Query {
+                query_type,
+                message,
+                default,
+            } => fmt_debug_function(f, "Query", &[query_type, message, default]),
+            Self::QueryValue { message, default } => {
+                fmt_debug_function(f, "QueryValue", &[message, default])
+            }
+            Self::Message {
+                msg_type,
+                format,
+                args,
+            } => {
+                let mut all_args = Vec::with_capacity(args.len().saturating_add(2));
+                all_args.push(msg_type);
+                all_args.push(format);
+                all_args.extend(args);
+                fmt_debug_function(f, "Message", &all_args)
+            }
+            Self::FlashWriteBuffer {
+                addr,
+                offs,
+                len,
+                mode,
+            } => fmt_debug_function(f, "FlashWriteBuffer", &[addr, offs, len, mode]),
+            Self::FlashLoadAlgorithm {
+                algo_path,
+                ram_start,
+                ram_size,
+            } => fmt_debug_function(f, "FlashLoadAlgorithm", &[algo_path, ram_start, ram_size]),
+            Self::BufferSet {
+                buff_id,
+                buff_offset,
+                count,
+                size,
+                value,
+            } => fmt_debug_function(f, "BufferSet", &[buff_id, buff_offset, count, size, value]),
+            Self::BufferGet {
+                buff_id,
+                buff_offset,
+                size,
+            } => fmt_debug_function(f, "BufferGet", &[buff_id, buff_offset, size]),
+            Self::BufferSize { buff_id } => fmt_debug_function(f, "BufferSize", &[buff_id]),
+            Self::BufferRead {
+                buff_id,
+                buff_offset,
+                addr,
+                length,
+                mode,
+            } => fmt_debug_function(f, "BufferRead", &[buff_id, buff_offset, addr, length, mode]),
+            Self::BufferWrite {
+                buff_id,
+                buff_offset,
+                addr,
+                length,
+                mode,
+            } => fmt_debug_function(
+                f,
+                "BufferWrite",
+                &[buff_id, buff_offset, addr, length, mode],
+            ),
+            Self::BufferStreamIn {
+                buff_id,
+                buff_offset,
+                length,
+                path,
+                mode,
+                timeout,
+            } => fmt_debug_function(
+                f,
+                "BufferStreamIn",
+                &[buff_id, buff_offset, length, path, mode, timeout],
+            ),
+            Self::BufferStreamOut {
+                buff_id,
+                buff_offset,
+                length,
+                dest_path,
+                dest_mode,
+                timeout,
+            } => fmt_debug_function(
+                f,
+                "BufferStreamOut",
+                &[buff_id, buff_offset, length, dest_path, dest_mode, timeout],
+            ),
+            Self::RunApplication {
+                app_path,
+                arguments,
+                work_directory,
+                timeout,
+            } => fmt_debug_function(
+                f,
+                "RunApplication",
+                &[app_path, arguments, work_directory, timeout],
+            ),
+            Self::RunPythonScript {
+                script_path,
+                arguments,
+                work_directory,
+                timeout,
+            } => fmt_debug_function(
+                f,
+                "RunPythonScript",
+                &[script_path, arguments, work_directory, timeout],
+            ),
+            Self::FilePathExists { path, timeout } => {
+                fmt_debug_function(f, "FilePathExists", &[path, timeout])
+            }
+            Self::LoadDebugInfo { file } => fmt_debug_function(f, "LoadDebugInfo", &[file]),
+        }
+    }
 }
 
 impl Default for DebugFunction {
@@ -1155,5 +1335,387 @@ mod tests {
             result.unwrap_err(),
             DebugAccessParseError::UnknownStatement("GetBase".to_string())
         );
+    }
+
+    fn normal(value: &str) -> Expression {
+        Expression::Normal(value.to_string())
+    }
+
+    #[test]
+    fn format_debug_functions_exhaustively() {
+        let cases = vec![
+            (DebugFunction::Read8 { addr: normal("a") }, "Read8(a)"),
+            (DebugFunction::Read16 { addr: normal("a") }, "Read16(a)"),
+            (DebugFunction::Read32 { addr: normal("a") }, "Read32(a)"),
+            (DebugFunction::Read64 { addr: normal("a") }, "Read64(a)"),
+            (
+                DebugFunction::Write8 {
+                    addr: normal("a"),
+                    val: normal("v"),
+                },
+                "Write8(a, v)",
+            ),
+            (
+                DebugFunction::Write16 {
+                    addr: normal("a"),
+                    val: normal("v"),
+                },
+                "Write16(a, v)",
+            ),
+            (
+                DebugFunction::Write32 {
+                    addr: normal("a"),
+                    val: normal("v"),
+                },
+                "Write32(a, v)",
+            ),
+            (
+                DebugFunction::Write64 {
+                    addr: normal("a"),
+                    val: normal("v"),
+                },
+                "Write64(a, v)",
+            ),
+            (DebugFunction::ReadAP { addr: normal("a") }, "ReadAP(a)"),
+            (
+                DebugFunction::WriteAP {
+                    addr: normal("a"),
+                    val: normal("v"),
+                },
+                "WriteAP(a, v)",
+            ),
+            (DebugFunction::ReadDP { addr: normal("a") }, "ReadDP(a)"),
+            (
+                DebugFunction::WriteDP {
+                    addr: normal("a"),
+                    val: normal("v"),
+                },
+                "WriteDP(a, v)",
+            ),
+            (
+                DebugFunction::ReadAccessAP { addr: normal("a") },
+                "ReadAccessAP(a)",
+            ),
+            (
+                DebugFunction::WriteAccessAP {
+                    addr: normal("a"),
+                    val: normal("v"),
+                },
+                "WriteAccessAP(a, v)",
+            ),
+            (
+                DebugFunction::DapDelay {
+                    delay: normal("delay"),
+                },
+                "DAP_Delay(delay)",
+            ),
+            (
+                DebugFunction::DapWriteAbort {
+                    value: normal("value"),
+                },
+                "DAP_WriteABORT(value)",
+            ),
+            (
+                DebugFunction::DapSwjPins {
+                    pinout: normal("pinout"),
+                    pinselect: normal("pinselect"),
+                    pinwait: normal("pinwait"),
+                },
+                "DAP_SWJ_Pins(pinout, pinselect, pinwait)",
+            ),
+            (
+                DebugFunction::DapSwjClock { val: normal("val") },
+                "DAP_SWJ_Clock(val)",
+            ),
+            (
+                DebugFunction::DapSwjSequence {
+                    cnt: normal("cnt"),
+                    val: normal("val"),
+                },
+                "DAP_SWJ_Sequence(cnt, val)",
+            ),
+            (
+                DebugFunction::DapJtagSequence {
+                    cnt: normal("cnt"),
+                    tms: normal("tms"),
+                    tdi: normal("tdi"),
+                },
+                "DAP_JTAG_Sequence(cnt, tms, tdi)",
+            ),
+            (
+                DebugFunction::Sequence {
+                    name: normal("name"),
+                },
+                "Sequence(name)",
+            ),
+            (
+                DebugFunction::Query {
+                    query_type: normal("query_type"),
+                    message: normal("message"),
+                    default: normal("default"),
+                },
+                "Query(query_type, message, default)",
+            ),
+            (
+                DebugFunction::QueryValue {
+                    message: normal("message"),
+                    default: normal("default"),
+                },
+                "QueryValue(message, default)",
+            ),
+            (
+                DebugFunction::Message {
+                    msg_type: normal("msg_type"),
+                    format: normal("format"),
+                    args: vec![],
+                },
+                "Message(msg_type, format)",
+            ),
+            (
+                DebugFunction::FlashWriteBuffer {
+                    addr: normal("addr"),
+                    offs: normal("offs"),
+                    len: normal("len"),
+                    mode: normal("mode"),
+                },
+                "FlashWriteBuffer(addr, offs, len, mode)",
+            ),
+            (
+                DebugFunction::FlashLoadAlgorithm {
+                    algo_path: normal("algo_path"),
+                    ram_start: normal("ram_start"),
+                    ram_size: normal("ram_size"),
+                },
+                "FlashLoadAlgorithm(algo_path, ram_start, ram_size)",
+            ),
+            (
+                DebugFunction::BufferSet {
+                    buff_id: normal("buff_id"),
+                    buff_offset: normal("buff_offset"),
+                    count: normal("count"),
+                    size: normal("size"),
+                    value: normal("value"),
+                },
+                "BufferSet(buff_id, buff_offset, count, size, value)",
+            ),
+            (
+                DebugFunction::BufferGet {
+                    buff_id: normal("buff_id"),
+                    buff_offset: normal("buff_offset"),
+                    size: normal("size"),
+                },
+                "BufferGet(buff_id, buff_offset, size)",
+            ),
+            (
+                DebugFunction::BufferSize {
+                    buff_id: normal("buff_id"),
+                },
+                "BufferSize(buff_id)",
+            ),
+            (
+                DebugFunction::BufferRead {
+                    buff_id: normal("buff_id"),
+                    buff_offset: normal("buff_offset"),
+                    addr: normal("addr"),
+                    length: normal("length"),
+                    mode: normal("mode"),
+                },
+                "BufferRead(buff_id, buff_offset, addr, length, mode)",
+            ),
+            (
+                DebugFunction::BufferWrite {
+                    buff_id: normal("buff_id"),
+                    buff_offset: normal("buff_offset"),
+                    addr: normal("addr"),
+                    length: normal("length"),
+                    mode: normal("mode"),
+                },
+                "BufferWrite(buff_id, buff_offset, addr, length, mode)",
+            ),
+            (
+                DebugFunction::BufferStreamIn {
+                    buff_id: normal("buff_id"),
+                    buff_offset: normal("buff_offset"),
+                    length: normal("length"),
+                    path: normal("path"),
+                    mode: normal("mode"),
+                    timeout: normal("timeout"),
+                },
+                "BufferStreamIn(buff_id, buff_offset, length, path, mode, timeout)",
+            ),
+            (
+                DebugFunction::BufferStreamOut {
+                    buff_id: normal("buff_id"),
+                    buff_offset: normal("buff_offset"),
+                    length: normal("length"),
+                    dest_path: normal("dest_path"),
+                    dest_mode: normal("dest_mode"),
+                    timeout: normal("timeout"),
+                },
+                "BufferStreamOut(buff_id, buff_offset, length, dest_path, dest_mode, timeout)",
+            ),
+            (
+                DebugFunction::RunApplication {
+                    app_path: normal("app_path"),
+                    arguments: normal("arguments"),
+                    work_directory: normal("work_directory"),
+                    timeout: normal("timeout"),
+                },
+                "RunApplication(app_path, arguments, work_directory, timeout)",
+            ),
+            (
+                DebugFunction::RunPythonScript {
+                    script_path: normal("script_path"),
+                    arguments: normal("arguments"),
+                    work_directory: normal("work_directory"),
+                    timeout: normal("timeout"),
+                },
+                "RunPythonScript(script_path, arguments, work_directory, timeout)",
+            ),
+            (
+                DebugFunction::FilePathExists {
+                    path: normal("path"),
+                    timeout: normal("timeout"),
+                },
+                "FilePathExists(path, timeout)",
+            ),
+            (
+                DebugFunction::LoadDebugInfo {
+                    file: normal("file"),
+                },
+                "LoadDebugInfo(file)",
+            ),
+        ];
+
+        for (function, expected) in cases {
+            let actual = function.to_string();
+            assert_eq!(actual, expected);
+            assert!(!actual.contains(';'));
+            assert!(!actual.contains(",  "));
+        }
+
+        assert_eq!(
+            DebugFunction::Read8 {
+                addr: normal("0x64FF")
+            }
+            .to_string(),
+            "Read8(0x64FF)"
+        );
+    }
+
+    #[test]
+    fn format_expression_variants_recursively() {
+        assert_eq!(
+            normal("arbitrary text, unchanged").to_string(),
+            "arbitrary text, unchanged"
+        );
+        assert_eq!(
+            Expression::Conditional(Box::new(Conditional {
+                condition: normal("x < y"),
+                true_value: normal("a"),
+                false_value: normal("b"),
+            }))
+            .to_string(),
+            "(x < y) ? a : b"
+        );
+
+        let nested = Expression::Conditional(Box::new(Conditional {
+            condition: Expression::FunctionCall(Box::new(DebugFunction::Read8 {
+                addr: normal("condition_addr"),
+            })),
+            true_value: Expression::FunctionCall(Box::new(DebugFunction::Read16 {
+                addr: normal("true_addr"),
+            })),
+            false_value: Expression::FunctionCall(Box::new(DebugFunction::Read32 {
+                addr: normal("false_addr"),
+            })),
+        }));
+        assert_eq!(
+            nested.to_string(),
+            "(Read8(condition_addr)) ? Read16(true_addr) : Read32(false_addr)"
+        );
+    }
+
+    #[test]
+    fn format_message_variadic_arguments() {
+        let message = |args| DebugFunction::Message {
+            msg_type: normal("1"),
+            format: normal("\"message\""),
+            args,
+        };
+
+        assert_eq!(message(vec![]).to_string(), "Message(1, \"message\")");
+        assert_eq!(
+            message(vec![normal("arg1")]).to_string(),
+            "Message(1, \"message\", arg1)"
+        );
+        assert_eq!(
+            message(vec![normal("arg1"), normal("arg2"), normal("arg3")]).to_string(),
+            "Message(1, \"message\", arg1, arg2, arg3)"
+        );
+    }
+
+    #[test]
+    fn format_canonical_debug_names() {
+        let cases = [
+            ("DAP_Delay", DebugFunction::DapDelay { delay: normal("1") }),
+            (
+                "DAP_WriteABORT",
+                DebugFunction::DapWriteAbort { value: normal("2") },
+            ),
+            (
+                "DAP_SWJ_Pins",
+                DebugFunction::DapSwjPins {
+                    pinout: normal("3"),
+                    pinselect: normal("4"),
+                    pinwait: normal("5"),
+                },
+            ),
+            (
+                "DAP_SWJ_Clock",
+                DebugFunction::DapSwjClock { val: normal("6") },
+            ),
+            (
+                "DAP_SWJ_Sequence",
+                DebugFunction::DapSwjSequence {
+                    cnt: normal("7"),
+                    val: normal("8"),
+                },
+            ),
+            (
+                "DAP_JTAG_Sequence",
+                DebugFunction::DapJtagSequence {
+                    cnt: normal("9"),
+                    tms: normal("10"),
+                    tdi: normal("11"),
+                },
+            ),
+        ];
+
+        for (name, function) in cases {
+            assert!(function.to_string().starts_with(name));
+        }
+    }
+
+    #[test]
+    fn format_parsed_expressions_round_trip() {
+        let cases = [
+            ("Read8(0x64FF)", "Read8(0x64FF)"),
+            ("Write32(addr, Read32(base))", "Write32(addr, Read32(base))"),
+            (
+                "(condition) ? Write8(addr, 1) : Read16(addr)",
+                "(condition) ? Write8(addr, 1) : Read16(addr)",
+            ),
+            ("Sequence(\"ResetAndHalt\")", "Sequence(\"ResetAndHalt\")"),
+            (
+                "Message(1, \"value\", Read32(addr), extra)",
+                "Message(1, \"value\", Read32(addr), extra)",
+            ),
+        ];
+
+        for (source, expected) in cases {
+            let expression = Expression::try_from(source).unwrap();
+            assert_eq!(expression.to_string(), expected);
+        }
     }
 }
