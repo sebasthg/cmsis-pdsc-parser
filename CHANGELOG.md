@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 
+### Changed
+- `Statement::Comment` content no longer contain the '//' prefix
+
 ## [0.1.1] - 2026-09-10
 
 ### Added

@@ -68,8 +68,8 @@ impl TryFrom<String> for Statement {
         let input = value.trim().to_string();
 
         // Check if it is a comment
-        if input.starts_with("//") {
-            return Ok(Self::Comment(input));
+        if let Some(value) = input.strip_prefix("//") {
+            return Ok(Self::Comment(value.trim().to_string()));
         }
 
         // If present remove the semicolon
@@ -1114,7 +1114,7 @@ mod tests {
 
         assert_eq!(
             statement,
-            Statement::Comment("// This is a comment!".to_string())
+            Statement::Comment("This is a comment!".to_string())
         );
     }
 
@@ -1717,5 +1717,14 @@ mod tests {
             let expression = Expression::try_from(source).unwrap();
             assert_eq!(expression.to_string(), expected);
         }
+    }
+
+    #[test]
+    fn comment_value_does_not_contain_leading_slashes() {
+        let example: String = r"        // This is a cool comment!".to_string();
+
+        let parsed: Statement = example.try_into().unwrap();
+
+        assert_eq!(parsed, Statement::Comment(String::from("This is a cool comment!")))
     }
 }

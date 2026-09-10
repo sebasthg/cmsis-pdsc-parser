@@ -1519,7 +1519,7 @@ mod tests {
                 // Do debug accesses
             "#
             .to_string(),
-            statements: vec![Statement::Comment("// Do debug accesses".to_string())],
+            statements: vec![Statement::Comment("Do debug accesses".to_string())],
         }
         .into();
 
@@ -1552,7 +1552,7 @@ mod tests {
         "#
                         .to_string(),
                         statements: vec![Statement::Comment(
-                            "// Do something generic for parallel trace port trace".to_string(),
+                            "Do something generic for parallel trace port trace".to_string(),
                         )],
                     }
                     .into(),
@@ -1626,7 +1626,7 @@ mod tests {
         assert_eq!(
             block.statements,
             vec![
-                Statement::Comment("// Variable definition by __var keyword".to_string()),
+                Statement::Comment("Variable definition by __var keyword".to_string()),
                 Statement::Definition(Assignment {
                     variable: "doIfBlock".to_string(),
                     expression: Expression::Normal("1".to_string())
@@ -1666,7 +1666,7 @@ mod tests {
                     atomic: None,
                     info: None,
                     content: "\n        // Do debug accesses\n    ".to_string(),
-                    statements: vec![Statement::Comment("// Do debug accesses".to_string())]
+                    statements: vec![Statement::Comment("Do debug accesses".to_string())]
                 }
                 .into()
             ]
@@ -1759,7 +1759,7 @@ mod tests {
         whileCondition = 0;
     "#.to_string(),
                 statements: vec![
-                    Statement::Comment("// Execute while \"whileCondition\" different from '0' with a timeout of 5ms".to_string()),
+                    Statement::Comment("Execute while \"whileCondition\" different from '0' with a timeout of 5ms".to_string()),
                     Statement::Assignment(Assignment {
                         variable: "whileCondition".to_string(),
                         expression: Expression::Normal("0".to_string())
