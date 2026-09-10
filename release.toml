@@ -28,7 +28,7 @@ push = true
 push-remote = "origin"
 # push-options = ""
 
-publish = false
+publish = true
 # owners = []
 rate-limit.new-packages = 5
 rate-limit.existing-packages = 30
