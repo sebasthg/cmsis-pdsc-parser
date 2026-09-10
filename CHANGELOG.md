@@ -17,6 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 <!-- next-header -->
 ## [Unreleased] - ReleaseDate
 
+## [0.2.0] - 2026-09-10
+
 ### Changed
 - `Statement::Comment` content no longer contain the '//' prefix
 
@@ -36,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Initial project release
 
 <!-- next-url -->
-[Unreleased]: https://github.com/sebasthg/cmsis-pdsc-parser/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/sebasthg/cmsis-pdsc-parser/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/sebasthg/cmsis-pdsc-parser/compare/v0.1.1...HEAD
 [0.1.1]: https://github.com/sebasthg/cmsis-pdsc-parser/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/sebasthg/cmsis-pdsc-parser/compare/7f3b6d6a1e3cff964dfe821f8d3bbacd4cf1b896..v0.1.0
